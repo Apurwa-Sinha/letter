@@ -1,0 +1,174 @@
+!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:wght@700&display=swap"
+    rel="stylesheet">
+  <!-- Main Quill library -->
+  <script src="//cdn.quilljs.com/1.3.6/quill.js"></script>
+  <!-- Theme included stylesheets -->
+  <link href="//cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <link href="//cdn.quilljs.com/1.3.6/quill.bubble.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <title>Letter box</title>
+</head>
+
+<body>
+  <header>
+    <div class="container header">
+      <div class="header--navbar--wrapper">
+        <div class="nav--logo"><svg xmlns="http://www.w3.org/2000/svg" class="nav--logo--icon" fill="none"
+            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21.75 9v.906a2.25 2.25 0 01-1.183 1.981l-6.478 3.488M2.25 9v.906a2.25 2.25 0 001.183 1.981l6.478 3.488m8.839 2.51l-4.66-2.51m0 0l-1.023-.55a2.25 2.25 0 00-2.134 0l-1.022.55m0 0l-4.661 2.51m16.5 1.615a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V8.844a2.25 2.25 0 011.183-1.98l7.5-4.04a2.25 2.25 0 012.134 0l7.5 4.04a2.25 2.25 0 011.183 1.98V19.5z" />
+          </svg>
+          <span class="nav--logo--writeup">Letterio</span>
+        </div>
+        <nav></nav>
+      </div>
+      <div class="header--hero--content">
+        <p>Speak your mind out to the world</p>
+        <h1 class="text-xxl-light">Read and publish letters, <br> Anonymously</h1>
+        <button><a href="#get-started">Start Writing</a> <svg class="button--icon" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+          </svg>
+        </button>
+      </div>
+      <img src="https://www.journey.io/_next/static/media/bottom-bg.8f942d27.webp" alt="" class="heroImage">
+    </div>
+
+  </header>
+
+
+  <main>
+    <div class="display--section">
+      <div class="display--section--wrapper">
+        <div class="display--section--writeup">
+          <h1 class="text-xxl-dark">The beauty of writing never ends</h1>
+          <p>The world revolves around feelings and to share them best without emotion one can write. Read our beloved
+            letters and share them if you like!</p>
+        </div>
+        <div class="display--section--cards--wrapper">
+          <!-- data coming from backend -->
+        </div>
+      </div>
+    </div>
+    <div class="container info">
+      <div class="info--hero--content">
+        <h1 class="text-xxl-light">"Discover a world of words! Our letter-based website is your portal to endless
+          language adventures. Dive in
+          today!"</h1>
+        <div class="info--stats">
+          <div class="info--stats--container">
+            <h2>900+</h2>
+            <p>letters</p>
+          </div>
+          <div class="info--stats--container">
+            <h2>5674+</h2>
+            <p>words</p>
+          </div>
+          <div class="info--stats--container">
+            <h2>80000+</h2>
+            <p>likes</p>
+          </div>
+        </div>
+      </div>
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Ferdinand_Runk_-_Das_Glurnsertal_mit_der_Etsch_in_Tirol_-_3548_-_Kunsthistorisches_Museum.jpg"
+        alt="" class="info--image">
+    </div>
+    <div id="get-started" class="container form--container">
+      <div class="form--wrapper">
+        <h1 class="text-xxl-dark">Get Started</h1>
+        <form action="/cards" method="POST">
+          <div class="form--input">
+            <label for="title">Title</label>
+            <input id="title" name="title" required type="text"
+              placeholder="A title or your subject for your letter, please">
+          </div>
+
+          <div class="form--input">
+            <label for="salutation">Salutation</label>
+            <input minlength="5" id="salutation" name="salutation" required type="text"
+              placeholder="Dear [Universe] or [My Younger Self],">
+          </div>
+
+          <!-- quill -->
+          <div class="form--input">
+            <label for="letter">Your Letter</label>
+            <div class="rio" type="text" id="editor">
+            </div>
+          </div>
+          <input type="hidden" id="writeup" name="writeup" class="quill-data-input">
+          <input type="hidden" id="date" name="date">
+
+          <div class="form--input">
+            <label for="closing">Closing Statement</label>
+            <input minlength="5" id="closing" required name="closing" type="text" placeholder="[Yours Faithfully]">
+          </div>
+
+          <div class="form--input">
+            <label for="from">From</label>
+            <input minlength="5" id="from" name="from" type="text" placeholder="Keep you name here anonymous">
+          </div>
+
+
+
+          <div class="form--button--container">
+            <!-- <button>Preview <svg class="button--icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button> -->
+            <button type="submit" class="teal-bg">Publish <svg class="button--icon" xmlns="http://www.w3.org/2000/svg"
+                fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+  <footer class="container--footer">
+    <div class="cta--newsletter">
+      <div class="cta--newsletter--email">
+        <div>
+          <h1 class="text-xxl-light">Subscribe to our newsletter, <br>For faster updates</h1>
+        </div>
+        <div class="cta--form">
+          <input minlength="5" id="from" name="from" type="text" placeholder="Email">
+          <button type="submit" class="teal-bg">Submit <svg class="button--icon" xmlns="http://www.w3.org/2000/svg"
+              fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+   
+    <div class="lower--footer">
+      <div class="lower--footer--child">
+        <div class=" nav--logo--writeup">Letterio</div>
+      </div>
+      <div class="lower--footer--child">
+        <div class="footer--list">
+          <div><a href="#">Go to top</a></div>
+          <div><a href
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
