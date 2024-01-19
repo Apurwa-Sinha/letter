@@ -1,6 +1,6 @@
 INRODUCTION
 
-This is a letter writing app that allows users to create custom letters by filling in blanks with their own information. The app prompts the user for input and generates a letter based on the user's response
+This is a letter writing app that allows users to create custom letters by filling in blanks with their information. The app prompts the user for input and generates a letter based on the user's response
 
 
 IMPROVEMENTS REQUIRED
