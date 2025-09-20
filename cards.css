@@ -1,68 +1,90 @@
-/* existing style adaptation */
-
-.text-xxl-light {
-  font-family: "Playfair Display", serif;
-  color: #f4fce3;
-  font-size: 52px;
-  line-height: 60px;
-  letter-spacing: -0.05em;
-  margin-bottom: 12px;
+:root {
+  --primary-bg: #f4fce3;
+  --text-light: #f4fce3;
+  --text-dark: #212529;
+  --text-letter: #fff5f5;
+  --font-display: "Playfair Display", serif;
 }
 
-/* new styles */
-/* body{
-  position: relative;
-} */
-
 body {
-  content: "";
-  background-image: url(https://www.journey.io/_next/static/media/bottom-bg.8f942d27.webp);
-  /* position: absolute; */
-  /* top: 0; left: 0; */
-  /* width: 100%; height: 100%; */
-  background-size: cover;
-  background-repeat: no-repeat;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
   box-sizing: border-box;
-  color: #f4fce3;
+  
+  background-image: url(https://www.journey.io/_next/static/media/bottom-bg.8f942d27.webp);
+  background-size: cover;
+  background-repeat: no-repeat;
+  
+  color: var(--text-light);
+  font-family: sans-serif; /* A base font for the page */
+}
+
+/* --- Layout Components --- */
+header, main, footer {
+  position: relative;
+  width: min(1200px, 100% - 28px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 header {
   flex-basis: 80px;
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
   justify-content: flex-end;
-  width: min(1200px, 100% - 28px);
-  /* align-items: flex-end; */
-  color: #212529;
 }
 
-header, main, footer{
-  position: relative;
-}
 .header--navbar--wrapper {
-  position: static;
-  background: #f4fce3;
-  width: min(1200px, 100% - 28px);
-  transform: none;
-  margin: 0 auto;
   display: flex;
-  /* margin-top: 24px; */
   align-items: center;
   justify-content: space-between;
+  
+  background: var(--primary-bg);
+  color: var(--text-dark);
+  
   border-radius: 50px;
   padding: 16px 24px;
-  /* color: #; */
 }
 
+.lower--footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* Pushes footer to the bottom */
+  margin-bottom: 36px;
+  color: var(--text-light);
+}
+
+
+/* --- Letter Specific Styles --- */
 .letter--section--container {
   width: min(1024px, 100% - 48px);
-  margin: 80px auto;
-  color: #fff5f5;
+  margin-top: 80px;
+  margin-bottom: 80px;
+  
+  color: var(--text-letter);
   text-shadow: 4px 4px 11px rgba(0,0,0,0.80);
+}
+
+.text-xxl-light {
+  font-family: var(--font-display);
+  color: var(--text-light);
+  font-size: 52px;
+  line-height: 60px;
+  letter-spacing: -0.05em;
+  margin-bottom: 12px;
+}
+
+.letter--head {
+  margin-bottom: 48px;
+}
+
+.letter--salutation,
+.letter--container,
+.letter--closing,
+.letter--from {
+  font-size: 20px;
 }
 
 .letter--date,
@@ -71,43 +93,20 @@ header, main, footer{
   font-style: italic;
 }
 
-.letter--salutation,
-.letter--container {
+.letter--salutation {
   margin-bottom: 24px;
 }
-.letter--closing,
-.letter--container,
-.letter--salutation,
-.letter--from {
-  font-size: 20px;
-}
-.letter--head {
-  margin-bottom: 48px;
-}
+
 .letter--container {
   width: min(900px, 100% - 12px);
+  margin-bottom: 24px;
+}
+
+/* Suggestion: Instead of styling <br>, apply margins to paragraphs inside the container */
+.letter--container p {
+    margin-bottom: 16px; 
 }
 
 .letter--closing {
   margin-bottom: 6px;
 }
-br {
-  display: block;
-  margin-bottom: 16px;
-  content: "";
-}
-.lower--footer {
-  position: static;
-  width: min(1200px, 100% - 28px);
-  transform: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #f4fce3;
-  margin: 0 auto;
-  margin-top: auto;
-  margin-bottom: 36px;
-}
-
-
-.cards--para{}
