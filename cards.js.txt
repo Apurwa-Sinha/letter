@@ -32,3 +32,4 @@ function updateText(data) {
     .insertAdjacentHTML("afterbegin", html);
 }
 fetchData();
+
