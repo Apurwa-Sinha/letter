@@ -76,3 +76,4 @@ const formattedDate = currentDateAndTime.toLocaleDateString(undefined, options);
 
 const dateInput = document.querySelector('#date')
 dateInput.value = formattedDate
+
