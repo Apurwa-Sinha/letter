@@ -1,49 +1,20 @@
-require('dotenv').config()
+import express from "express";
+import cors from "cors";
+import data from "./db.json" assert { type: "json" };
 
-// this file serves the backend
-const jsonServer = require("json-server");
-const server = jsonServer.create();
-const router = jsonServer.router("db.json"); // <== Will be created later
-const middlewares = jsonServer.defaults();
-const port = process.env.PORT || 3200; // <== You can change the port
+const app = express();
 
-server.use(middlewares);
-server.use(jsonServer.bodyParser);
+app.use(cors());           // ← this is the fix
+app.use(express.json());
 
-let url;
-if(process.env.NODE_ENV = 'production'){
-  url = 'https://seahorse-app-xz5gx.ondigitalocean.app/'
-} else {
-  url = 'http://localhost:3200/'
-}
+app.get("/cards", (req, res) => res.json(data.cards));
 
-server.post("/cards", (req, res) => {
-  const db = router.db; // Access the database object
-  // Handle the POST request here
-  const customResponse = { id: db.get("nextId").value().id, ...req.body };
-  db.update("nextId", (n) => {
-    return { id: n.id + 1 };
-  }).write();
-  // Manually append the data to db.json
-  db.get("cards").push(customResponse).write();
-res.redirect(`${url}cards.html?id=${db.get("nextId").value().id - 1}`)
+app.post("/cards", (req, res) => {
+  const card = { id: Date.now(), ...req.body };
+  data.cards.push(card);
+  res.status(201).json(card);
 });
 
-// forbidding all other request except GET and POST
-server.all('*', function (req, res, next) {
-  if (req.method === 'GET' || req.method === 'POST') {
-    next() // Continue
-  } else {
-    res.sendStatus(403) // Forbidden
-  }
-})
+app.listen(3000, () => console.log("Server running on port 3000"));
 
-
-server.get("/echo", (req, res) => {
-  return res.send("<h1>hey</h1>");
-});
-server.use(router);
-server.listen(port);
-
-
-console.log("server running on port", port, '& mode', process.env.NODE_ENV );
+  
