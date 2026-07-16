@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   SOCIAL SHARE BUTTONS — paste this at the bottom of style.css
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Strip wrapper */
+.share-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Base button / link style */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease,
+    transform 0.12s ease;
+  white-space: nowrap;
+  background: transparent;
+  line-height: 1;
+}
+
+.share-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.share-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Native / generic share ── */
+.share-btn--native {
+  color: #555;
+  border-color: #d0d0d0;
+  background: #f5f5f5;
+}
+.share-btn--native:hover {
+  background: #ebebeb;
+  border-color: #bbb;
+}
+
+/* ── Twitter / X ── */
+.share-btn--twitter {
+  color: #fff;
+  background: #000;
+  border-color: #000;
+}
+.share-btn--twitter:hover {
+  background: #222;
+}
+
+/* ── WhatsApp ── */
+.share-btn--whatsapp {
+  color: #fff;
+  background: #25d366;
+  border-color: #25d366;
+}
+.share-btn--whatsapp:hover {
+  background: #1ebe5b;
+}
+
+/* ── Facebook ── */
+.share-btn--facebook {
+  color: #fff;
+  background: #1877f2;
+  border-color: #1877f2;
+}
+.share-btn--facebook:hover {
+  background: #0e6de0;
+}
+
+/* ── Copy link ── */
+.share-btn--copy {
+  color: #444;
+  border-color: #d0d0d0;
+  background: #f5f5f5;
+}
+.share-btn--copy:hover {
+  background: #ebebeb;
+}
+
+/* Copied! feedback state */
+.share-btn--copied {
+  color: #fff !important;
+  background: #2ecc71 !important;
+  border-color: #2ecc71 !important;
+}
+
+/* ── Responsive: stack on very small screens ── */
+@media (max-width: 400px) {
+  .share-buttons {
+    gap: 0.4rem;
+  }
+  .share-btn span {
+    display: none; /* icon-only on tiny screens */
+  }
+  .share-btn {
+    padding: 0.45rem;
+  }
+}
