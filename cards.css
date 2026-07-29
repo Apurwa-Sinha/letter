@@ -1,26 +1,59 @@
+
+/* =========================================
+   1. IMPORTS & RESET
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* =========================================
+   2. CSS VARIABLES (DESIGN TOKENS)
+   ========================================= */
 :root {
   --primary-bg: #f4fce3;
   --text-light: #f4fce3;
   --text-dark: #212529;
   --text-letter: #fff5f5;
   --font-display: "Playfair Display", serif;
+  --font-base: sans-serif;
 }
 
+/* =========================================
+   3. BASE STYLES & SCROLLBAR
+   ========================================= */
 body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  box-sizing: border-box;
   
-  background-image: url(https://www.journey.io/_next/static/media/bottom-bg.8f942d27.webp);
+  background-image: url('https://www.journey.io/_next/static/media/bottom-bg.8f942d27.webp');
   background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
+  background-attachment: fixed;
   
   color: var(--text-light);
-  font-family: sans-serif; /* A base font for the page */
+  font-family: var(--font-base); 
 }
 
-/* --- Layout Components --- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-bg);
+  border-radius: 5px;
+}
+
+/* =========================================
+   4. LAYOUT COMPONENTS (HEADER, MAIN, FOOTER)
+   ========================================= */
 header, main, footer {
   position: relative;
   width: min(1200px, 100% - 28px);
@@ -33,6 +66,7 @@ header {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  padding-top: 20px;
 }
 
 .header--navbar--wrapper {
@@ -45,39 +79,56 @@ header {
   
   border-radius: 50px;
   padding: 16px 24px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 .lower--footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto; /* Pushes footer to the bottom */
+  margin-top: auto; 
   margin-bottom: 36px;
+  padding-top: 40px;
   color: var(--text-light);
 }
 
-
-/* --- Letter Specific Styles --- */
+/* =========================================
+   5. LETTER UI & GLASSMORPHISM
+   ========================================= */
 .letter--section--container {
   width: min(1024px, 100% - 48px);
   margin-top: 80px;
   margin-bottom: 80px;
+  margin-left: auto;
+  margin-right: auto;
+  
+  /* Frosted Glass Effect */
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); 
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 48px;
   
   color: var(--text-letter);
-  text-shadow: 4px 4px 11px rgba(0,0,0,0.80);
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.60); 
 }
 
+/* =========================================
+   6. TYPOGRAPHY
+   ========================================= */
 .text-xxl-light {
   font-family: var(--font-display);
   color: var(--text-light);
   font-size: 52px;
-  line-height: 60px;
-  letter-spacing: -0.05em;
+  line-height: 1.1; 
+  letter-spacing: -0.02em;
   margin-bottom: 12px;
 }
 
 .letter--head {
   margin-bottom: 48px;
+  text-align: center; 
 }
 
 .letter--salutation,
@@ -85,12 +136,19 @@ header {
 .letter--closing,
 .letter--from {
   font-size: 20px;
+  line-height: 1.6; 
 }
 
 .letter--date,
 .letter--closing,
 .letter--from {
   font-style: italic;
+  font-family: var(--font-display); 
+}
+
+.letter--date {
+  margin-bottom: 32px;
+  opacity: 0.8;
 }
 
 .letter--salutation {
@@ -99,15 +157,43 @@ header {
 
 .letter--container {
   width: min(900px, 100% - 12px);
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
-/* Suggestion: Instead of styling <br>, apply margins to paragraphs inside the container */
 .letter--container p {
-    margin-bottom: 16px; 
+  margin-bottom: 24px; 
 }
 
 .letter--closing {
   margin-bottom: 6px;
 }
+
+/* =========================================
+   7. ANIMATIONS
+   ========================================= */
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  opacity: 0; 
+  animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Staggered load delays */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.4s; }
+.delay-3 { animation-delay: 0.7s; }
+
+
+
+
+  
 
