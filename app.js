@@ -1,15 +1,14 @@
-// ============================================================================
-// CONFIGURATION & GLOBAL STATE
-// ============================================================================
-const url = `https://seahorse-app-xz5gx.ondigitalocean.app/cards`;
-const urlParams = new URLSearchParams(window.location.search);
-const cardId = urlParams.get("id"); 
+// ── Audio Theme URLs ──
+const audioSources = {
+  rain: "https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3",
+  fireplace: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_678262ef76.mp3",
+  lofi: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3"
+};
 
-let letterData = null;
-let isSpeaking = false;
+let bgAudio = null;
 
 // ============================================================================
-// 1. INITIALIZATION & FETCHING
+// 1. INITIALIZATION & TIME CAPSULE LOGIC
 // ============================================================================
 async function initializeApp() {
   if (!cardId) {
@@ -26,24 +25,67 @@ async function initializeApp() {
     const statusText = document.getElementById("envelope-status");
     const sealBtn = document.getElementById("wax-seal");
     
+    // FEATURE: TIME CAPSULE ⏳
+    if (letterData.unlockDate) {
+      const unlockTime = new Date(letterData.unlockDate).getTime();
+      const now = new Date().getTime();
+
+      if (unlockTime > now) {
+        statusText.innerText = "This letter is sealed until the right time.";
+        sealBtn.style.opacity = 0.8;
+        
+        // Start Countdown Timer
+        setInterval(() => {
+          const distance = unlockTime - new Date().getTime();
+          if (distance < 0) {
+            location.reload(); // Refresh when unlocked
+            return;
+          }
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          
+          sealBtn.innerHTML = `<span style="font-size: 0.8rem; text-align:center;">Unlocks in<br>${days}d ${hours}h ${mins}m</span>`;
+        }, 1000);
+        return; // Stop here, don't allow opening
+      }
+    }
+
+    // Normal Unlocked State
     statusText.innerText = "A letter has arrived for you.";
     sealBtn.disabled = false;
     sealBtn.classList.add("ready");
-    
     sealBtn.addEventListener("click", breakSeal);
+
   } catch (error) {
     console.error("Fetch failed:", error);
-    document.getElementById("envelope-status").innerText = "Letter could not be found.";
+    document.getElementById("envelope-status").innerText = "Only ashes remain. This letter has been burned.";
+    document.getElementById("wax-seal").style.display = "none";
   }
 }
 
 // ============================================================================
-// 2. BREAK SEAL & REVEAL LETTER
+// 2. BREAK SEAL, AUDIO & BURN AFTER READING
 // ============================================================================
 function breakSeal() {
   const overlay = document.getElementById("envelope-overlay");
   overlay.classList.add("opened");
   
+  // FEATURE: AMBIENT AUDIO 🌧️
+  if (letterData.audioTheme && audioSources[letterData.audioTheme]) {
+    bgAudio = new Audio(audioSources[letterData.audioTheme]);
+    bgAudio.loop = true;
+    bgAudio.volume = 0.4;
+    bgAudio.play().catch(e => console.log("Audio autoplay prevented by browser"));
+  }
+
+  // FEATURE: BURN AFTER READING 🔥
+  if (letterData.burnAfterReading) {
+    // We send the delete request immediately. The user can read it now, 
+    // but if they refresh or share the link, it will be gone forever.
+    fetch(`${url}/${cardId}`, { method: 'DELETE' }).catch(console.error);
+  }
+
   setTimeout(() => {
     buildLetterStructure(letterData);
     overlay.style.display = 'none'; 
@@ -51,125 +93,34 @@ function breakSeal() {
 }
 
 // ============================================================================
-// 3. BUILD HTML (WITH XSS PROTECTION & LIKE BUTTON)
+// 3. FLOATING REACTIONS (Update your existing toggleLike function)
 // ============================================================================
-function buildLetterStructure(data) {
-  const container = document.querySelector(".letter--section--container");
-
-  const html = `
-    <div class="letter--head animate-fade-up delay-1">
-      <h1 class="text-xxl-light">${data.title}</h1>
-      <p class="letter--date">${data.date ? data.date : 'Unknown date'}</p>
-    </div>
-    <p class="cards--para letter--salutation animate-fade-up delay-2">${data.salutation},</p>
-    
-    <div id="typewriter-box" class="cards--para letter--container typewriter-cursor"></div>
-    
-    <div id="letter-footer" style="opacity: 0; transition: opacity 1s;">
-      <p class="letter--closing">${data.closing},</p>
-      <p class="letter--from">${data.from}</p>
-      
-      <!-- Feature Buttons -->
-      <div class="card-actions letter-actions-group" data-html2canvas-ignore>
-        
-        <!-- LIKE BUTTON -->
-        <button id="btn-like" class="like-btn">
-          <svg class="like-btn--heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-          <span class="like-btn--count" id="like-count">${data.likes || 0}</span>
-        </button>
-
-        <button id="btn-read" class="feature-btn">🔊 Read to Me</button>
-        <button id="btn-share" class="feature-btn">📤 Share</button>
-        <button id="btn-save" class="feature-btn">📸 Save Image</button>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-  
-  let safeHTML = "";
-  if (typeof DOMPurify !== "undefined") {
-    safeHTML = DOMPurify.sanitize(data.writeup);
-  } else {
-    console.error("DOMPurify not loaded! Falling back to un-sanitized string.");
-    safeHTML = data.writeup;
-  }
-  
-  startTypewriter(safeHTML);
-}
-
-// ============================================================================
-// 4. HTML-AWARE TYPEWRITER LOGIC
-// ============================================================================
-async function startTypewriter(htmlString) {
-  const box = document.getElementById("typewriter-box");
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = htmlString;
-  
-  await new Promise(r => setTimeout(r, 1000));
-
-  async function typeNode(node, parentElement) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent;
-      for (let char of text) {
-        parentElement.innerHTML += char;
-        await new Promise(r => setTimeout(r, 15)); 
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const newElement = document.createElement(node.tagName);
-      for (let attr of node.attributes) {
-        newElement.setAttribute(attr.name, attr.value);
-      }
-      parentElement.appendChild(newElement);
-      for (let child of node.childNodes) {
-        await typeNode(child, newElement);
-      }
-    }
-  }
-
-  for (let child of tempDiv.childNodes) {
-    await typeNode(child, box);
-  }
-
-  box.classList.remove("typewriter-cursor");
-  document.getElementById("letter-footer").style.opacity = 1;
-  attachFeatureListeners();
-}
-
-// ============================================================================
-// 5. FEATURE ACTION LISTENERS
-// ============================================================================
-function attachFeatureListeners() {
-  document.getElementById("btn-read").addEventListener("click", toggleSpeech);
-  document.getElementById("btn-share").addEventListener("click", shareLetter);
-  document.getElementById("btn-save").addEventListener("click", downloadLetter);
-  
-  // Like Button Initialization
-  const likeBtn = document.getElementById("btn-like");
-  likeBtn.addEventListener("click", toggleLike);
-
-  // Restore liked state from local storage
-  if (localStorage.getItem(`letterio-liked-${cardId}`) === "true") {
-    likeBtn.classList.add("like-btn--active");
-  }
-}
-
-// ── Feature: Like Button ──
 async function toggleLike() {
   const btn = document.getElementById("btn-like");
   const countSpan = document.getElementById("like-count");
   const isCurrentlyLiked = btn.classList.contains("like-btn--active");
 
   // Trigger CSS Pop Animation
+  btn.classList.remove("like-btn--pop");
+  void btn.offsetWidth; // Reflow
   btn.classList.add("like-btn--pop");
-  setTimeout(() => btn.classList.remove("like-btn--pop"), 350); 
+
+  // FEATURE: FLOATING REACTION 💖
+  const floatingEmoji = document.createElement("div");
+  const reactions = ["💖", "✨", "💌", "🥺"];
+  floatingEmoji.innerText = reactions[Math.floor(Math.random() * reactions.length)];
+  floatingEmoji.className = "floating-reaction";
+  // Randomize slight horizontal position
+  floatingEmoji.style.left = `${Math.random() * 40 + 20}%`;
+  btn.appendChild(floatingEmoji);
+  
+  // Clean up element after animation
+  setTimeout(() => floatingEmoji.remove(), 2000);
 
   let currentCount = parseInt(countSpan.innerText) || 0;
   let action = "";
 
-  // Optimistic UI Update (Changes instantly before server confirms)
+  // Optimistic UI Update
   if (isCurrentlyLiked) {
     btn.classList.remove("like-btn--active");
     countSpan.innerText = Math.max(0, currentCount - 1);
@@ -193,73 +144,16 @@ async function toggleLike() {
     console.error("Failed to sync like with server:", error);
   }
 }
+    
 
-// ── Feature: Text-To-Speech ──
-function toggleSpeech() {
-  const btn = document.getElementById("btn-read");
-  if (isSpeaking) {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    btn.innerText = "🔊 Read to Me";
-    return;
-  }
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = DOMPurify.sanitize(letterData.writeup);
-  const cleanText = tempDiv.textContent || tempDiv.innerText || "";
-  const textToRead = `${letterData.title}. ${letterData.salutation}. ${cleanText} ${letterData.closing}, ${letterData.from}`;
-  const utterance = new SpeechSynthesisUtterance(textToRead);
-  utterance.rate = 0.9; 
-  utterance.pitch = 1;
-  utterance.onend = () => {
-    isSpeaking = false;
-    btn.innerText = "🔊 Read to Me";
-  };
-  window.speechSynthesis.speak(utterance);
-  isSpeaking = true;
-  btn.innerText = "⏸️ Stop Reading";
-}
 
-// ── Feature: Native Share ──
-async function shareLetter() {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: letterData.title,
-        text: 'I wanted to share this letter with you.',
-        url: window.location.href,
-      });
-    } catch (error) {}
-  } else {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Link copied to clipboard!");
-  }
-}
 
-// ── Feature: Save as Image ──
-async function downloadLetter() {
-  const letterElement = document.querySelector(".letter--section--container");
-  try {
-    if (typeof html2canvas === "undefined") throw new Error("html2canvas not loaded");
-    const canvas = await html2canvas(letterElement, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: document.documentElement.classList.contains("dark") ? "#1a1a22" : "#f4fce3"
-    });
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `Letterio-${letterData.title.replace(/\s+/g, '-')}.png`;
-    link.click();
-  } catch (error) {
-    console.error("Save Image failed:", error);
-    alert("Failed to save image. Please try again.");
-  }
-}
 
-// ============================================================================
-// 6. START APP ON LOAD
-// ============================================================================
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeApp);
-} else {
-  initializeApp();
-}
+
+
+
+
+
+
+ 
+
