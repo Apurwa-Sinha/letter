@@ -1,35 +1,69 @@
 const url = `https://seahorse-app-xz5gx.ondigitalocean.app/cards`;
-// send data to a page based on id
-const currentUrl = window.location.href;
-const splittedValue = currentUrl.split("id=");
 
-console.log(splittedValue[1]);
+// 1. BETTER URL PARSING: Use URLSearchParams to safely extract the ID
+const urlParams = new URLSearchParams(window.location.search);
+// This assumes your URL looks like: website.com/letter.html?id=123
+const cardId = urlParams.get("id"); 
 
 async function fetchData() {
-  const res = await fetch(`${url}/${splittedValue[1]}`);
-  const data = await res.json();
-  console.log(res);
-  console.log(data);
-  updateText(data);
-  return data;
+  // Guard clause: If there is no ID in the URL, don't try to fetch
+  if (!cardId) {
+    showError("No letter ID found in the URL.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${url}/${cardId}`);
+    
+    // 2. ERROR HANDLING: Check if the response was successful
+    if (!res.ok) {
+      throw new Error(`Error: ${res.status} - Letter not found`);
+    }
+
+    const data = await res.json();
+    updateText(data);
+    
+  } catch (error) {
+    console.error("Fetch failed:", error);
+    showError("Could not load the letter. It may have been moved or deleted.");
+  }
 }
 
 function updateText(data) {
-  const html = `
-    <div class="letter--head">
-      <h1 class="text-xxl-light">${data.title}</h1>
-      <p class="letter--date">Date: ${data.date ? data.date : '<span>unknown</span>'}</p>
-    </div>
-    <p class="cards--para letter--salutation">${data.salutation},</p>
-    <div class="cards--para letter--container">
-      ${data.writeup}
-    </div>
-    <p class="letter--closing">${data.closing},</p>
-    <p class="letter--from">${data.from}</p>
-`;
-  document
-    .querySelector(".letter--section--container")
-    .insertAdjacentHTML("afterbegin", html);
-}
-fetchData();
+  const container = document.querySelector(".letter--section--container");
 
+  // 3. AUTO-FORMAT PARAGRAPHS: Converts plain text line-breaks (\n) into <p> tags
+  // This ensures your CSS styling for .letter--container p works perfectly!
+  const formattedWriteup = data.writeup
+    ? data.writeup.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('')
+    : '<p>No content provided.</p>';
+
+  // 4. INJECTING HTML WITH ANIMATION CLASSES (Notice the animate-fade-up and delay classes)
+  const html = `
+    <div class="letter--head animate-fade-up delay-1">
+      <h1 class="text-xxl-light">${data.title}</h1>
+      <p class="letter--date">${data.date ? data.date : 'Date unknown'}</p>
+    </div>
+    
+    <p class="cards--para letter--salutation animate-fade-up delay-2">${data.salutation},</p>
+    
+    <div class="cards--para letter--container animate-fade-up delay-2">
+      ${formattedWriteup}
+    </div>
+    
+    <p class="letter--closing animate-fade-up delay-3">${data.closing},</p>
+    <p class="letter--from animate-fade-up delay-3">${data.from}</p>
+  `;
+
+  // Replaces the inner HTML so we don't accidentally stack multiple letters
+  container.innerHTML = html;
+}
+
+// Helper function to show errors on the screen instead of just the console
+function showError(message) {
+  const container = document.querySelector(".letter--section--container");
+  container.innerHTML = `<div class="letter--head animate-fade-up"><h1 class="text-xxl-light">Oops!</h1><p>${message}</p></div>`;
+}
+
+// Start the app
+fetchData();
