@@ -3,36 +3,34 @@ import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-// Load environment variables from the .env file
+// Load environment variables from .env
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ── 1. CONNECT TO CLOUD DATABASE ─────────────────────────────────────────────
+// ── 1. CONNECT TO MONGODB ────────────────────────────────────────────────────
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ Connected to MongoDB safely!"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // ── 2. DATABASE SCHEMAS ──────────────────────────────────────────────────────
-
-// A small tracker to mimic your 'nextId' from db.json
 const counterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   seq: { type: Number, default: 0 }
 });
 const Counter = mongoose.model("Counter", counterSchema);
 
-// The blueprint for a Letter
 const cardSchema = new mongoose.Schema({
-  id: { type: Number, unique: true }, // Keeps your URL structure: ?id=1, ?id=2
+  id: { type: Number, unique: true }, 
   title: String,
   salutation: String,
   writeup: String,
   date: String,
   closing: String,
-  from: String
+  from: String,
+  likes: { type: Number, default: 0 } // <-- Added Likes Field
 });
 const Card = mongoose.model("Card", cardSchema);
 
@@ -41,7 +39,6 @@ const Card = mongoose.model("Card", cardSchema);
 // GET ALL CARDS
 app.get("/cards", async (req, res) => {
   try {
-    // '-_id -__v' hides MongoDB's internal tracking data from the frontend
     const cards = await Card.find({}, '-_id -__v'); 
     res.json(cards);
   } catch (error) {
@@ -49,7 +46,7 @@ app.get("/cards", async (req, res) => {
   }
 });
 
-// GET SINGLE CARD (By sequential ID)
+// GET SINGLE CARD 
 app.get("/cards/:id", async (req, res) => {
   try {
     const targetId = parseInt(req.params.id);
@@ -65,18 +62,15 @@ app.get("/cards/:id", async (req, res) => {
 // CREATE NEW CARD
 app.post("/cards", async (req, res) => {
   try {
-    // 1. Auto-increment the ID tracker safely
     const counter = await Counter.findByIdAndUpdate(
       "cardIdTracker",
       { $inc: { seq: 1 } },
       { new: true, upsert: true }
     );
 
-    // 2. Auto-format the date
     const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     const autoFormattedDate = new Date().toLocaleDateString('en-US', dateOptions);
 
-    // 3. Build and save the new card
     const newCard = new Card({
       id: counter.seq,
       title: req.body.title,
@@ -84,12 +78,12 @@ app.post("/cards", async (req, res) => {
       writeup: req.body.writeup,
       closing: req.body.closing,
       from: req.body.from,
-      date: autoFormattedDate
+      date: autoFormattedDate,
+      likes: 0 // Initialize at 0
     });
 
     await newCard.save();
 
-    // 4. Send the new card back to the frontend
     res.status(201).json({
       id: newCard.id,
       title: newCard.title,
@@ -97,12 +91,36 @@ app.post("/cards", async (req, res) => {
       writeup: newCard.writeup,
       date: newCard.date,
       closing: newCard.closing,
-      from: newCard.from
+      from: newCard.from,
+      likes: newCard.likes
     });
-
   } catch (error) {
     console.error("Save error:", error);
     res.status(500).json({ error: "Failed to save letter" });
+  }
+});
+
+// UPDATE LIKES (New Route for the Heart Button)
+app.patch("/cards/:id/like", async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id);
+    const { action } = req.body; 
+    
+    // Add 1 if action is 'like', subtract 1 if 'unlike'
+    const increment = action === "like" ? 1 : -1;
+
+    const updatedCard = await Card.findOneAndUpdate(
+      { id: targetId },
+      { $inc: { likes: increment } },
+      { new: true } 
+    );
+
+    if (!updatedCard) return res.status(404).json({ error: "Letter not found" });
+    
+    res.json({ likes: updatedCard.likes });
+  } catch (error) {
+    console.error("Like error:", error);
+    res.status(500).json({ error: "Failed to update likes" });
   }
 });
 
@@ -111,6 +129,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Letterio API Server running on port ${PORT}`);
 });
-
-
-    
