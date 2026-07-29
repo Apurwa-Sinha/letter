@@ -4,7 +4,11 @@
 // ── Inject the toggle button into the navbar ──────────────────────────────────
 function injectToggle() {
   const nav = document.querySelector("nav");
-  if (!nav) return;
+  // Failsafe in case there is no nav element
+  if (!nav) {
+    console.warn("Darkmode toggle: <nav> element not found.");
+    return; 
+  }
 
   const btn = document.createElement("button");
   btn.className = "darkmode-toggle";
@@ -39,8 +43,7 @@ function injectToggle() {
 // ── Apply / remove dark mode ──────────────────────────────────────────────────
 function applyDarkMode(enabled) {
   document.documentElement.classList.toggle("dark", enabled);
-  localStorage.setItem("letterio-darkmode", enabled ? "1" : "0");
-
+  
   const btn = document.querySelector(".darkmode-toggle");
   if (btn) {
     btn.setAttribute("aria-label", enabled ? "Switch to light mode" : "Switch to dark mode");
@@ -51,19 +54,40 @@ function applyDarkMode(enabled) {
 function toggleDarkMode() {
   const isDark = document.documentElement.classList.contains("dark");
   applyDarkMode(!isDark);
+  
+  // Only set localStorage if the user MANUALLY clicks the button
+  localStorage.setItem("letterio-darkmode", !isDark ? "1" : "0");
 }
 
-// ── On load: restore saved preference ────────────────────────────────────────
+// ── On load: restore saved preference & listen to OS ─────────────────────────
 function init() {
   injectToggle();
   const saved = localStorage.getItem("letterio-darkmode");
+  const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+
   if (saved === "1") {
     applyDarkMode(true);
-  } else if (saved === null) {
-    // Respect OS preference on first visit
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyDarkMode(prefersDark);
+  } else if (saved === "0") {
+    applyDarkMode(false);
+  } else {
+    // No saved preference: Respect OS preference on first visit
+    applyDarkMode(systemPrefersDark.matches);
   }
+
+  // Live OS Sync: Listen for system theme changes while the site is open
+  systemPrefersDark.addEventListener("change", (e) => {
+    // Only auto-switch if the user hasn't explicitly saved a preference
+    if (localStorage.getItem("letterio-darkmode") === null) {
+      applyDarkMode(e.matches);
+    }
+  });
 }
 
-init();
+// Ensure the DOM is fully loaded before injecting the button
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+
+
