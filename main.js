@@ -1,49 +1,82 @@
-
-
 // main.js — Letterio (FULL VERSION with all changes)
-// Includes: card rendering, like buttons, share buttons, loading state
+// Includes: card rendering, like buttons, share buttons, loading state, and MongoDB sync
+
+// Use a variable for the API URL so you only have to change it in one place when you deploy
+const API_URL = "http://localhost:3000/cards"; 
 
 const cardsWrapper = document.querySelector(".display--section--cards--wrapper");
 
 // ── Quill rich-text editor setup ─────────────────────────────────────────────
-const quill = new Quill("#editor", { theme: "snow" });
+// Wrap in an if-statement in case the editor isn't on this specific page (e.g., if this is just the feed page)
+if (document.querySelector("#editor")) {
+  const quill = new Quill("#editor", { theme: "snow" });
 
-document.querySelector("form").addEventListener("submit", () => {
-  document.querySelector("#writeup").value = quill.root.innerHTML;
-  document.querySelector("#date").value = new Date().toLocaleDateString("en-GB", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  document.querySelector("form").addEventListener("submit", () => {
+    // Sanitize the input BEFORE putting it in the hidden field to send to the server
+    const rawHTML = quill.root.innerHTML;
+    const safeHTML = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHTML) : rawHTML;
+    
+    document.querySelector("#writeup").value = safeHTML;
+    
+    document.querySelector("#date").value = new Date().toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   });
-});
+}
 
-// ── Like helpers ──────────────────────────────────────────────────────────────
+// ── Like helpers (UPDATED TO SYNC WITH MONGODB) ──────────────────────────────
 function getLikes(cardId) {
   return JSON.parse(localStorage.getItem("letterio-likes") || "{}")[cardId] || 0;
 }
+
 function hasLiked(cardId) {
   return JSON.parse(localStorage.getItem("letterio-liked-ids") || "[]").includes(cardId);
 }
-function toggleLike(cardId) {
+
+// Now async so it can talk to the server
+async function toggleLike(cardId, currentServerCount) {
   const likes  = JSON.parse(localStorage.getItem("letterio-likes") || "{}");
   const liked  = JSON.parse(localStorage.getItem("letterio-liked-ids") || "[]");
   const already = liked.includes(cardId);
+  
+  let action = "";
+
   if (already) {
     likes[cardId] = Math.max(0, (likes[cardId] || 1) - 1);
     liked.splice(liked.indexOf(cardId), 1);
+    action = "unlike";
   } else {
-    likes[cardId] = (likes[cardId] || 0) + 1;
+    // If the server has a higher count than our local storage, use the server's count as the base
+    const baseCount = Math.max(likes[cardId] || 0, currentServerCount || 0);
+    likes[cardId] = baseCount + 1;
     liked.push(cardId);
+    action = "like";
   }
+
   localStorage.setItem("letterio-likes", JSON.stringify(likes));
   localStorage.setItem("letterio-liked-ids", JSON.stringify(liked));
+
+  // Sync with MongoDB in the background
+  try {
+    await fetch(`${API_URL}/${cardId}/like`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action })
+    });
+  } catch (error) {
+    console.error("Failed to sync like with server:", error);
+  }
+
   return { count: likes[cardId], liked: !already };
 }
 
 // ── Share helpers ─────────────────────────────────────────────────────────────
 function cardShareUrl(card) {
-  return `${window.location.origin}${window.location.pathname}?id=${card.id}`;
+  return `${window.location.origin}/letter.html?id=${card.id}`; // Adjusted to ensure it points to the single letter page
 }
+
 function buildShareButtons(card) {
   const url  = encodeURIComponent(cardShareUrl(card));
   const text = encodeURIComponent(`"${card.title}" — read this letter on Letterio`);
@@ -70,12 +103,6 @@ function buildShareButtons(card) {
         </svg>
         <span>WhatsApp</span>
       </a>
-      <a class="share-btn share-btn--facebook" href="https://www.facebook.com/sharer/sharer.php?u=${url}" target="_blank" rel="noopener noreferrer">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-        </svg>
-        <span>Facebook</span>
-      </a>
       <button class="share-btn share-btn--copy" data-url="${cardShareUrl(card)}">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
@@ -87,17 +114,21 @@ function buildShareButtons(card) {
   `;
 }
 
-// ── Card renderer ─────────────────────────────────────────────────────────────
+// ── Card renderer (UPDATED FOR XSS PROTECTION) ────────────────────────────────
 function renderCard(card) {
   const liked = hasLiked(card.id);
-  const count = getLikes(card.id);
+  // Use server count if available, otherwise fallback to local
+  const count = card.likes !== undefined ? card.likes : getLikes(card.id); 
+
+  // Sanitize the HTML before injecting it into the feed
+  const safeWriteup = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(card.writeup) : card.writeup;
 
   const div = document.createElement("div");
   div.className = "letter-card";
   div.innerHTML = `
     <div class="letter-card--body">
       <p class="letter-card--salutation">${card.salutation}</p>
-      <div class="letter-card--writeup">${card.writeup}</div>
+      <div class="letter-card--writeup">${safeWriteup}</div>
       <p class="letter-card--closing">${card.closing}</p>
       <p class="letter-card--from">— ${card.from || "Anonymous"}</p>
       <p class="letter-card--date">${card.date || ""}</p>
@@ -105,7 +136,8 @@ function renderCard(card) {
     <div class="letter-card--footer">
       <a href="letter.html?id=${card.id}" class="letter-card--title">${card.title}</a>
       <div class="card-actions">
-        <button class="like-btn ${liked ? "like-btn--active" : ""}" data-id="${card.id}"
+        <!-- Added data-server-count so we can compare local vs server logic -->
+        <button class="like-btn ${liked ? "like-btn--active" : ""}" data-id="${card.id}" data-server-count="${count}"
           aria-label="${liked ? "Unlike" : "Like"} this letter" aria-pressed="${liked}">
           <svg class="like-btn--heart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
             fill="${liked ? "currentColor" : "none"}" stroke="currentColor"
@@ -128,15 +160,21 @@ document.addEventListener("click", async (e) => {
   const likeBtn = e.target.closest(".like-btn");
   if (likeBtn) {
     const id = Number(likeBtn.dataset.id);
-    const { count, liked } = toggleLike(id);
+    const serverCount = Number(likeBtn.dataset.serverCount) || 0;
+    
+    const { count, liked } = await toggleLike(id, serverCount);
+    
     const heart = likeBtn.querySelector(".like-btn--heart");
     heart.setAttribute("fill", liked ? "currentColor" : "none");
     likeBtn.querySelector(".like-btn--count").textContent = count > 0 ? count : "";
+    likeBtn.dataset.serverCount = count; // Update DOM state
+    
     likeBtn.classList.toggle("like-btn--active", liked);
     likeBtn.setAttribute("aria-pressed", liked);
     likeBtn.setAttribute("aria-label", `${liked ? "Unlike" : "Like"} this letter`);
+    
     likeBtn.classList.remove("like-btn--pop");
-    void likeBtn.offsetWidth;
+    void likeBtn.offsetWidth; // Trigger reflow to restart animation
     likeBtn.classList.add("like-btn--pop");
     return;
   }
@@ -181,6 +219,7 @@ async function copyToClipboard(text, btn) {
 
 // ── Loading state ─────────────────────────────────────────────────────────────
 function showLoading() {
+  if (!cardsWrapper) return;
   cardsWrapper.innerHTML = `
     <div class="cards-loading">
       <div class="loading-spinner"></div>
@@ -189,17 +228,25 @@ function showLoading() {
   `;
 }
 
-// ── Fetch cards from backend ──────────────────────────────────────────────────
+// ── Fetch cards from backend (UPDATED) ────────────────────────────────────────
 async function loadCards() {
+  if (!cardsWrapper) return;
   showLoading();
   try {
-    const res   = await fetch("http://localhost:3000/cards");
+    const res   = await fetch(API_URL);
+    if (!res.ok) throw new Error("Server responded with an error");
+    
     const cards = await res.json();
     cardsWrapper.innerHTML = "";
+    
     if (!cards.length) {
       cardsWrapper.innerHTML = `<p class="empty-msg">No letters yet. Be the first to write one! ✍️</p>`;
       return;
     }
+    
+    // Sort cards so the newest ones appear at the top of the feed
+    cards.sort((a, b) => b.id - a.id);
+    
     cards.forEach((card) => cardsWrapper.appendChild(renderCard(card)));
   } catch (err) {
     cardsWrapper.innerHTML = `<p class="error-msg">Could not load letters. Is the server running?</p>`;
@@ -209,4 +256,16 @@ async function loadCards() {
 
 loadCards();
 
-      
+
+
+
+
+
+
+
+  
+
+
+
+
+
