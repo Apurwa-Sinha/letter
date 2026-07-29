@@ -30,6 +30,7 @@ a {
   font: inherit;
   color: inherit;
 }
+
 /* utility classes */
 .text-xxl-light {
   font-family: "Playfair Display", serif;
@@ -48,6 +49,7 @@ a {
   letter-spacing: -0.05em;
   margin-bottom: 32px;
 }
+
 @media (max-width: 800px) {
   .text-xxl-light,
   .text-xxl-dark {
@@ -72,25 +74,30 @@ a {
   margin-bottom: -40px;
   position: relative;
 }
+
 .heroImage {
   object-fit: cover;
   width: 100%;
   height: 80vh;
 }
+
 .nav--logo {
   display: inline-flex;
   gap: 4px;
   align-items: center;
 }
+
 .nav--logo--icon {
   width: 24px;
   height: 24px;
 }
+
 .nav--logo--writeup {
   font-weight: 700;
   font-size: 24px;
   letter-spacing: -0.03em;
 }
+
 .header--navbar--wrapper {
   position: absolute;
   top: 7%;
@@ -104,6 +111,7 @@ a {
   border-radius: 50px;
   padding: 16px 24px;
 }
+
 .header--hero--content {
   position: absolute;
   top: 50%;
@@ -141,6 +149,7 @@ a {
 .header--hero--content button a {
   text-decoration: none;
 }
+
 .button--icon {
   width: 16px;
   height: 16px;
@@ -153,12 +162,14 @@ a {
   border-radius: 40px;
   z-index: 10;
 }
+
 .display--section--wrapper {
   width: min(1200px, 100% - 28px);
   padding-block-end: 72px;
   padding-block-start: 72px;
   margin: 0 auto;
 }
+
 .display--section--writeup {
   text-align: center;
 }
@@ -168,6 +179,7 @@ a {
   line-height: 1.5;
   color: #495057;
 }
+
 .display--section--cards--wrapper {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -193,9 +205,11 @@ a {
   margin-top: 24px;
   font-style: italic;
 }
+
 .cards--inner--text {
   margin-bottom: 8px;
 }
+
 .cards p,
 .cards h3 {
   color: #495057;
@@ -205,6 +219,7 @@ a {
   font-size: 1em;
   font-weight: 600;
 }
+
 .cards--para {
   margin-top: 12px;
   margin-bottom: 12px;
@@ -234,8 +249,6 @@ a {
   width: 100%;
   height: 90vh;
   filter: brightness(60%);
-  width: 100%;
-  /* height: (95vh, 100% - 72px); */
 }
 
 .info--hero--content {
@@ -279,6 +292,7 @@ a {
     font-size: 18px;
   }
 }
+
 .info--stats--container {
   font-size: 24px;
 }
@@ -286,6 +300,7 @@ a {
 .form--container {
   background: #f4fce3;
 }
+
 .form--wrapper {
   width: min(1200px, 100% - 28px);
   padding-block-end: 72px;
@@ -306,6 +321,7 @@ a {
 .form--input {
   margin-bottom: 36px;
 }
+
 .form--input label {
   font-weight: 500;
   font-size: 18px;
@@ -332,9 +348,11 @@ a {
   padding-bottom: 64px;
   border: 0;
 }
+
 .ql-editor {
   padding: 0;
 }
+
 .ql-toolbar.ql-snow {
   border: 1px solid #e3e4e3;
   background: #fff;
@@ -349,6 +367,7 @@ a {
   margin-top: 48px;
   justify-content: center;
 }
+
 .form--button--container button {
   padding: 14px 28px;
   background-color: #dbe4ff;
@@ -374,7 +393,7 @@ a {
   position: relative;
   width: 100%;
   padding: 312px 0;
-  z-index: 1; /* Ensure this element appears below the cta--newsletter */
+  z-index: 1;
 }
 
 .container--footer::before {
@@ -389,7 +408,7 @@ a {
   width: 100%;
   height: 100%;
   filter: brightness(60%);
-  z-index: -1; /* Place this pseudo-element behind the content */
+  z-index: -1;
 }
 
 .cta--newsletter {
@@ -398,7 +417,7 @@ a {
   left: 50%;
   transform: translate(-50%, -50%);
   width: min(1200px, 100% - 28px);
-  z-index: 2; /* Ensure the cta--newsletter is above the footer and pseudo-element */
+  z-index: 2;
 }
 
 .cta--newsletter--email {
@@ -439,6 +458,7 @@ a {
     align-items: center;
   }
 }
+
 .cta--form input {
   padding: 20px;
   width: 100%;
@@ -460,7 +480,6 @@ a {
   text-transform: uppercase;
   font-weight: 500;
   box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.16);
-
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -506,5 +525,263 @@ a {
     gap: 12px;
     align-items: center;
   }
-
 }
+
+/* ============================================================================
+   NEW FEATURES EXTENSIONS
+   ============================================================================ */
+
+/* ── 1. ENVELOPE OVERLAY ── */
+.envelope-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #343a40;
+  background-image: radial-gradient(#495057 1px, transparent 1px);
+  background-size: 20px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 1s ease, transform 1s ease;
+}
+
+.envelope-overlay.opened {
+  opacity: 0;
+  transform: translateY(-100vh);
+  pointer-events: none;
+}
+
+.envelope-content {
+  text-align: center;
+  color: #f4fce3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.envelope-content p {
+  font-family: "Playfair Display", serif;
+  font-size: 24px;
+  font-style: italic;
+  color: #dee2e6;
+}
+
+/* ── Wax Seal Button ── */
+.wax-seal {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff4d6d 0%, #c1121f 100%);
+  border: 3px solid #780000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wax-seal:disabled {
+  background: #6c757d;
+  border-color: #495057;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.wax-seal.ready:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(255, 77, 109, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+}
+
+.wax-seal-text {
+  font-family: "Playfair Display", serif;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── 2. TYPEWRITER CURSOR ── */
+.typewriter-cursor::after {
+  content: "|";
+  display: inline-block;
+  margin-left: 2px;
+  color: #087f5b;
+  animation: blink 0.7s infinite;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── 3. LETTER CONTAINER & ACTIONS ── */
+.letter--section--container {
+  width: min(800px, 100% - 28px);
+  margin: 64px auto;
+  background: #f4fce3;
+  padding: 48px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.letter--head h1 {
+  font-family: "Playfair Display", serif;
+  font-size: 36px;
+  color: #212529;
+}
+
+.letter--date {
+  font-size: 14px;
+  color: #868e96;
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.feature-btn {
+  padding: 8px 16px;
+  background-color: #dbe4ff;
+  border-radius: 999px;
+  font-family: "Inter", sans-serif;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.feature-btn:hover {
+  background-color: #bac8ff;
+  transform: translateY(-1px);
+}
+
+/* ── 4. LIKE / HEART BUTTON ── */
+.like-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  border: 1.5px solid #e0e0e0;
+  background: #f5f5f5;
+  color: #888;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.like-btn svg.like-btn--heart {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: fill 0.18s ease, stroke 0.18s ease, transform 0.18s ease;
+}
+
+.like-btn:hover {
+  border-color: #ff6b8a;
+  color: #ff6b8a;
+  background: #fff0f3;
+  transform: translateY(-1px);
+}
+
+.like-btn:hover svg.like-btn--heart {
+  stroke: #ff6b8a;
+}
+
+.like-btn--active {
+  background: #fff0f3;
+  border-color: #ff4d6d;
+  color: #ff4d6d;
+}
+
+.like-btn--active svg.like-btn--heart {
+  fill: #ff4d6d;
+  stroke: #ff4d6d;
+}
+
+.like-btn--active:hover {
+  background: #ffe0e6;
+  border-color: #e0314f;
+  color: #e0314f;
+}
+
+@keyframes heart-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.35); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.like-btn--pop svg.like-btn--heart {
+  animation: heart-pop 0.35s ease forwards;
+}
+
+.like-btn--count {
+  min-width: 0.8rem;
+  text-align: center;
+}
+
+/* ── 5. FLOATING REACTIONS ── */
+.floating-reaction {
+  position: absolute;
+  bottom: 40px;
+  font-size: 1.5rem;
+  pointer-events: none;
+  animation: floatLove 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  z-index: 50;
+  user-select: none;
+}
+
+@keyframes floatLove {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.2);
+  }
+  100% {
+    transform: translateY(-120px) scale(1);
+    opacity: 0;
+  }
+}
+ 
+
+
+
+ 
+
+
+
+
+
+
+
+  
+  
+
+
+
+
