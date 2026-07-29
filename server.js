@@ -1,44 +1,59 @@
 import express from "express";
 import cors from "cors";
-import fs from "fs/promises"; 
-import path from "path";
-import { fileURLToPath } from "url";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, "db.json");
+// Load environment variables from the .env file
+dotenv.config();
 
 const app = express();
-
-// Enable CORS so your frontend can communicate with this backend securely
-app.use(cors());           
+app.use(cors());
 app.use(express.json());
 
-async function readDB() {
-  const data = await fs.readFile(dbPath, "utf-8");
-  return JSON.parse(data);
-}
+// ── 1. CONNECT TO CLOUD DATABASE ─────────────────────────────────────────────
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("✅ Connected to MongoDB safely!"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-async function writeDB(data) {
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2));
-}
+// ── 2. DATABASE SCHEMAS ──────────────────────────────────────────────────────
 
-// ── 1. GET ALL CARDS ──
+// A small tracker to mimic your 'nextId' from db.json
+const counterSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 }
+});
+const Counter = mongoose.model("Counter", counterSchema);
+
+// The blueprint for a Letter
+const cardSchema = new mongoose.Schema({
+  id: { type: Number, unique: true }, // Keeps your URL structure: ?id=1, ?id=2
+  title: String,
+  salutation: String,
+  writeup: String,
+  date: String,
+  closing: String,
+  from: String
+});
+const Card = mongoose.model("Card", cardSchema);
+
+// ── 3. API ROUTES ────────────────────────────────────────────────────────────
+
+// GET ALL CARDS
 app.get("/cards", async (req, res) => {
   try {
-    const db = await readDB();
-    res.json(db.cards);
+    // '-_id -__v' hides MongoDB's internal tracking data from the frontend
+    const cards = await Card.find({}, '-_id -__v'); 
+    res.json(cards);
   } catch (error) {
-    res.status(500).json({ error: "Failed to read database" });
+    res.status(500).json({ error: "Failed to fetch letters" });
   }
 });
 
-// ── 2. GET SINGLE CARD ──
+// GET SINGLE CARD (By sequential ID)
 app.get("/cards/:id", async (req, res) => {
   try {
-    const db = await readDB();
-    const targetId = parseInt(req.params.id); 
-    const card = db.cards.find(c => c.id === targetId);
+    const targetId = parseInt(req.params.id);
+    const card = await Card.findOne({ id: targetId }, '-_id -__v');
 
     if (!card) return res.status(404).json({ error: "Letter not found" });
     res.json(card);
@@ -47,34 +62,55 @@ app.get("/cards/:id", async (req, res) => {
   }
 });
 
-// ── 3. CREATE NEW CARD ──
+// CREATE NEW CARD
 app.post("/cards", async (req, res) => {
   try {
-    const db = await readDB();
-    const newId = db.nextId.id;
+    // 1. Auto-increment the ID tracker safely
+    const counter = await Counter.findByIdAndUpdate(
+      "cardIdTracker",
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
 
+    // 2. Auto-format the date
     const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     const autoFormattedDate = new Date().toLocaleDateString('en-US', dateOptions);
 
-    const newCard = {
-      id: newId,
-      ...req.body,
-      date: autoFormattedDate 
-    };
+    // 3. Build and save the new card
+    const newCard = new Card({
+      id: counter.seq,
+      title: req.body.title,
+      salutation: req.body.salutation,
+      writeup: req.body.writeup,
+      closing: req.body.closing,
+      from: req.body.from,
+      date: autoFormattedDate
+    });
 
-    db.cards.push(newCard);
-    db.nextId.id = newId + 1; 
+    await newCard.save();
 
-    await writeDB(db);
-    res.status(201).json(newCard);
+    // 4. Send the new card back to the frontend
+    res.status(201).json({
+      id: newCard.id,
+      title: newCard.title,
+      salutation: newCard.salutation,
+      writeup: newCard.writeup,
+      date: newCard.date,
+      closing: newCard.closing,
+      from: newCard.from
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error("Save error:", error);
     res.status(500).json({ error: "Failed to save letter" });
   }
 });
 
-// ── DEPLOYMENT FIX: Dynamic Port ──
+// ── 4. START SERVER ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Letterio API Server running on port ${PORT}`);
+  console.log(`🚀 Letterio API Server running on port ${PORT}`);
 });
+
+
+    
