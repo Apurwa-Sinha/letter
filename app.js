@@ -23,7 +23,6 @@ async function initializeApp() {
     
     letterData = await res.json();
     
-    // Data is loaded, prepare the Envelope for opening
     const statusText = document.getElementById("envelope-status");
     const sealBtn = document.getElementById("wax-seal");
     
@@ -31,9 +30,7 @@ async function initializeApp() {
     sealBtn.disabled = false;
     sealBtn.classList.add("ready");
     
-    // Wait for user to break the seal
     sealBtn.addEventListener("click", breakSeal);
-
   } catch (error) {
     console.error("Fetch failed:", error);
     document.getElementById("envelope-status").innerText = "Letter could not be found.";
@@ -47,20 +44,18 @@ function breakSeal() {
   const overlay = document.getElementById("envelope-overlay");
   overlay.classList.add("opened");
   
-  // Wait for the fade-out animation to finish, then build the letter
   setTimeout(() => {
     buildLetterStructure(letterData);
-    overlay.style.display = 'none'; // Remove completely from flow
+    overlay.style.display = 'none'; 
   }, 1000);
 }
 
 // ============================================================================
-// 3. BUILD HTML (WITH XSS PROTECTION)
+// 3. BUILD HTML (WITH XSS PROTECTION & LIKE BUTTON)
 // ============================================================================
 function buildLetterStructure(data) {
   const container = document.querySelector(".letter--section--container");
 
-  // Build the basic structure (excluding the body text)
   const html = `
     <div class="letter--head animate-fade-up delay-1">
       <h1 class="text-xxl-light">${data.title}</h1>
@@ -68,16 +63,23 @@ function buildLetterStructure(data) {
     </div>
     <p class="cards--para letter--salutation animate-fade-up delay-2">${data.salutation},</p>
     
-    <!-- Empty container for the typewriter -->
     <div id="typewriter-box" class="cards--para letter--container typewriter-cursor"></div>
     
-    <!-- Hidden closing until typing finishes -->
     <div id="letter-footer" style="opacity: 0; transition: opacity 1s;">
       <p class="letter--closing">${data.closing},</p>
       <p class="letter--from">${data.from}</p>
       
       <!-- Feature Buttons -->
-      <div class="letter-actions-group" data-html2canvas-ignore>
+      <div class="card-actions letter-actions-group" data-html2canvas-ignore>
+        
+        <!-- LIKE BUTTON -->
+        <button id="btn-like" class="like-btn">
+          <svg class="like-btn--heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span class="like-btn--count" id="like-count">${data.likes || 0}</span>
+        </button>
+
         <button id="btn-read" class="feature-btn">🔊 Read to Me</button>
         <button id="btn-share" class="feature-btn">📤 Share</button>
         <button id="btn-save" class="feature-btn">📸 Save Image</button>
@@ -87,16 +89,14 @@ function buildLetterStructure(data) {
 
   container.innerHTML = html;
   
-  // 🛡️ SECURITY FIX: Sanitize the raw HTML before rendering to prevent XSS attacks
   let safeHTML = "";
   if (typeof DOMPurify !== "undefined") {
     safeHTML = DOMPurify.sanitize(data.writeup);
   } else {
-    console.error("DOMPurify not loaded! Falling back to un-sanitized string (Not Recommended).");
+    console.error("DOMPurify not loaded! Falling back to un-sanitized string.");
     safeHTML = data.writeup;
   }
   
-  // Pass the cleaned string to the HTML-aware typewriter
   startTypewriter(safeHTML);
 }
 
@@ -105,47 +105,34 @@ function buildLetterStructure(data) {
 // ============================================================================
 async function startTypewriter(htmlString) {
   const box = document.getElementById("typewriter-box");
-  
-  // Convert the sanitized HTML string into actual hidden DOM elements
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = htmlString;
   
-  // Wait a moment before typing starts for dramatic effect
   await new Promise(r => setTimeout(r, 1000));
 
-  // Recursive function to type text but instantly inject HTML elements
   async function typeNode(node, parentElement) {
     if (node.nodeType === Node.TEXT_NODE) {
-      // If it's text, type it out character by character
       const text = node.textContent;
       for (let char of text) {
         parentElement.innerHTML += char;
-        await new Promise(r => setTimeout(r, 15)); // Adjust typing speed here (ms)
+        await new Promise(r => setTimeout(r, 15)); 
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // If it's an HTML tag (like <p> or <br>), inject it instantly
       const newElement = document.createElement(node.tagName);
-      
-      // Keep any classes, styles, or safe attributes it might have
       for (let attr of node.attributes) {
         newElement.setAttribute(attr.name, attr.value);
       }
-      
       parentElement.appendChild(newElement);
-      
-      // Recursively process the contents inside this tag
       for (let child of node.childNodes) {
         await typeNode(child, newElement);
       }
     }
   }
 
-  // Start processing the hidden DOM elements
   for (let child of tempDiv.childNodes) {
     await typeNode(child, box);
   }
 
-  // Typing finished: Remove cursor, show footer, attach feature listeners
   box.classList.remove("typewriter-cursor");
   document.getElementById("letter-footer").style.opacity = 1;
   attachFeatureListeners();
@@ -158,35 +145,75 @@ function attachFeatureListeners() {
   document.getElementById("btn-read").addEventListener("click", toggleSpeech);
   document.getElementById("btn-share").addEventListener("click", shareLetter);
   document.getElementById("btn-save").addEventListener("click", downloadLetter);
+  
+  // Like Button Initialization
+  const likeBtn = document.getElementById("btn-like");
+  likeBtn.addEventListener("click", toggleLike);
+
+  // Restore liked state from local storage
+  if (localStorage.getItem(`letterio-liked-${cardId}`) === "true") {
+    likeBtn.classList.add("like-btn--active");
+  }
+}
+
+// ── Feature: Like Button ──
+async function toggleLike() {
+  const btn = document.getElementById("btn-like");
+  const countSpan = document.getElementById("like-count");
+  const isCurrentlyLiked = btn.classList.contains("like-btn--active");
+
+  // Trigger CSS Pop Animation
+  btn.classList.add("like-btn--pop");
+  setTimeout(() => btn.classList.remove("like-btn--pop"), 350); 
+
+  let currentCount = parseInt(countSpan.innerText) || 0;
+  let action = "";
+
+  // Optimistic UI Update (Changes instantly before server confirms)
+  if (isCurrentlyLiked) {
+    btn.classList.remove("like-btn--active");
+    countSpan.innerText = Math.max(0, currentCount - 1);
+    localStorage.removeItem(`letterio-liked-${cardId}`);
+    action = "unlike";
+  } else {
+    btn.classList.add("like-btn--active");
+    countSpan.innerText = currentCount + 1;
+    localStorage.setItem(`letterio-liked-${cardId}`, "true");
+    action = "like";
+  }
+
+  // Background Sync to MongoDB
+  try {
+    await fetch(`${url}/${cardId}/like`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action })
+    });
+  } catch (error) {
+    console.error("Failed to sync like with server:", error);
+  }
 }
 
 // ── Feature: Text-To-Speech ──
 function toggleSpeech() {
   const btn = document.getElementById("btn-read");
-  
   if (isSpeaking) {
     window.speechSynthesis.cancel();
     isSpeaking = false;
     btn.innerText = "🔊 Read to Me";
     return;
   }
-
-  // Strip HTML tags for the speech reader by using a temporary div
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = DOMPurify.sanitize(letterData.writeup);
   const cleanText = tempDiv.textContent || tempDiv.innerText || "";
-
   const textToRead = `${letterData.title}. ${letterData.salutation}. ${cleanText} ${letterData.closing}, ${letterData.from}`;
   const utterance = new SpeechSynthesisUtterance(textToRead);
-  
   utterance.rate = 0.9; 
   utterance.pitch = 1;
-
   utterance.onend = () => {
     isSpeaking = false;
     btn.innerText = "🔊 Read to Me";
   };
-
   window.speechSynthesis.speak(utterance);
   isSpeaking = true;
   btn.innerText = "⏸️ Stop Reading";
@@ -201,11 +228,8 @@ async function shareLetter() {
         text: 'I wanted to share this letter with you.',
         url: window.location.href,
       });
-    } catch (error) {
-      console.log('Error sharing:', error);
-    }
+    } catch (error) {}
   } else {
-    // Fallback for desktop browsers
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied to clipboard!");
   }
@@ -216,14 +240,11 @@ async function downloadLetter() {
   const letterElement = document.querySelector(".letter--section--container");
   try {
     if (typeof html2canvas === "undefined") throw new Error("html2canvas not loaded");
-    
-    // Temporarily disable text-shadow for a cleaner export if needed, or keep it
     const canvas = await html2canvas(letterElement, {
-      scale: 2, // Retina quality
+      scale: 2,
       useCORS: true,
       backgroundColor: document.documentElement.classList.contains("dark") ? "#1a1a22" : "#f4fce3"
     });
-
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = `Letterio-${letterData.title.replace(/\s+/g, '-')}.png`;
@@ -242,4 +263,3 @@ if (document.readyState === "loading") {
 } else {
   initializeApp();
 }
-
