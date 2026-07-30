@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>You've received a letter - Letterio</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Ensure the body has the nice lime background from style.css */
+    body { background: #f4fce3; min-height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- ✉️ ENVELOPE OVERLAY ✉️ -->
+  <div id="envelope-overlay" class="envelope-overlay">
+    <div class="envelope-content">
+      <p id="envelope-status">Checking for letter...</p>
+      <button id="wax-seal" class="wax-seal" disabled>
+        <span class="wax-seal-text">Open</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 📜 LETTER CONTENT CONTAINER 📜 -->
+  <!-- app.js will inject the letter contents, signature, and scratch-off foil inside here -->
+  <div class="letter--section--container">
+    <!-- Letter builds dynamically here -->
+  </div>
+
+  <!-- LIBRARIES -->
+  <!-- DOMPurify for security against XSS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+  <!-- html2canvas for the "Save Image" feature if you decide to keep it -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
+  <!-- CUSTOM VIEWER JS -->
+  <script src="app.js"></script>
+</body>
+</html>
