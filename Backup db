@@ -1,0 +1,42 @@
+#!/bin/bash
+# Manual/cron-triggered MongoDB backup script.
+#
+# NOTE: If you're using MongoDB Atlas (the most common choice for this
+# stack), you almost certainly don't need this script — Atlas has
+# automated, continuous backups built in. Enable them under:
+#   Atlas dashboard -> your cluster -> Backup -> Enable Backup
+# That's the recommended path; this script is for self-hosted MongoDB
+# (e.g. running your own mongod instance) where Atlas isn't in play.
+#
+# Usage: ./backup-db.sh
+# Requires: mongodump installed (part of MongoDB Database Tools)
+# Requires: MONGODB_URI set in your environment or .env
+
+set -e
+
+if [ -z "$MONGODB_URI" ]; then
+  echo "MONGODB_URI is not set. Load your .env first, e.g.:"
+  echo "  export \$(grep -v '^#' .env | xargs) && ./backup-db.sh"
+  exit 1
+fi
+
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="./backups/backup-$TIMESTAMP"
+
+mkdir -p "$BACKUP_DIR"
+
+echo "Backing up database to $BACKUP_DIR ..."
+mongodump --uri="$MONGODB_URI" --out="$BACKUP_DIR"
+
+echo "Backup complete: $BACKUP_DIR"
+
+# keep only the last 7 backups locally, to avoid unbounded disk growth
+BACKUP_COUNT=$(ls -1 ./backups | wc -l)
+if [ "$BACKUP_COUNT" -gt 7 ]; then
+  echo "Pruning old backups, keeping the 7 most recent..."
+  ls -1t ./backups | tail -n +8 | while read -r old; do
+    rm -rf "./backups/$old"
+  done
+fi
+
+echo "Done."
