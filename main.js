@@ -1,32 +1,136 @@
-// main.js — Letterio (FULL VERSION with all changes)
-// Includes: card rendering, like buttons, share buttons, loading state, and MongoDB sync
 
-// Use a variable for the API URL so you only have to change it in one place when you deploy
-const API_URL = "http://localhost:3000/cards"; 
+// ============================================================================
+// main.js — Letterio (FULL VERSION: Feed, Editor, and Magical Features)
+// ============================================================================
 
+const API_URL = "http://localhost:3000/cards"; // Change this when you deploy!
 const cardsWrapper = document.querySelector(".display--section--cards--wrapper");
 
-// ── Quill rich-text editor setup ─────────────────────────────────────────────
-// Wrap in an if-statement in case the editor isn't on this specific page (e.g., if this is just the feed page)
+// ── 1. QUILL RICH-TEXT EDITOR SETUP ──────────────────────────────────────────
+let quill;
 if (document.querySelector("#editor")) {
-  const quill = new Quill("#editor", { theme: "snow" });
+  quill = new Quill("#editor", { theme: "snow" });
+}
 
-  document.querySelector("form").addEventListener("submit", () => {
-    // Sanitize the input BEFORE putting it in the hidden field to send to the server
-    const rawHTML = quill.root.innerHTML;
-    const safeHTML = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHTML) : rawHTML;
-    
-    document.querySelector("#writeup").value = safeHTML;
-    
-    document.querySelector("#date").value = new Date().toLocaleDateString("en-GB", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+// ── 2. SIGNATURE PAD LOGIC ───────────────────────────────────────────────────
+const canvas = document.getElementById("signature-pad");
+const ctx = canvas ? canvas.getContext("2d") : null;
+let isDrawing = false;
+let signatureBase64 = null;
+
+if (canvas) {
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#1864ab"; // Elegant blue ink color
+
+  const startDrawing = (e) => {
+    isDrawing = true;
+    ctx.beginPath();
+    ctx.moveTo(getX(e), getY(e));
+  };
+  
+  const draw = (e) => {
+    if (!isDrawing) return;
+    e.preventDefault(); // Prevent scrolling on mobile while drawing
+    ctx.lineTo(getX(e), getY(e));
+    ctx.stroke();
+    signatureBase64 = canvas.toDataURL("image/png"); // Save as base64 image
+  };
+  
+  const stopDrawing = () => { isDrawing = false; };
+
+  const getX = (e) => e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : e.clientX - canvas.getBoundingClientRect().left;
+  const getY = (e) => e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : e.clientY - canvas.getBoundingClientRect().top;
+
+  canvas.addEventListener("mousedown", startDrawing);
+  canvas.addEventListener("mousemove", draw);
+  canvas.addEventListener("mouseup", stopDrawing);
+  canvas.addEventListener("mouseout", stopDrawing);
+  canvas.addEventListener("touchstart", startDrawing, { passive: false });
+  canvas.addEventListener("touchmove", draw, { passive: false });
+  canvas.addEventListener("touchend", stopDrawing);
+
+  document.getElementById("clear-signature")?.addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    signatureBase64 = null;
   });
 }
 
-// ── Like helpers (UPDATED TO SYNC WITH MONGODB) ──────────────────────────────
+// ── 3. FORM SUBMISSION WITH MAGIC DATA ───────────────────────────────────────
+const form = document.querySelector("form");
+
+if (form && document.querySelector("#editor")) {
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault(); // Prevent default reload
+
+    const submitBtn = form.querySelector("button[type='submit']");
+    const originalBtnText = submitBtn.innerText;
+    submitBtn.innerText = "Sealing letter with magic...";
+    submitBtn.disabled = true;
+
+    // Sanitize Quill HTML
+    const rawHTML = quill.root.innerHTML;
+    const safeHTML = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHTML) : rawHTML;
+
+    // Prepare Base Payload
+    let letterPayload = {
+      title: document.getElementById("title").value,
+      salutation: document.getElementById("salutation").value,
+      writeup: safeHTML,
+      closing: document.getElementById("closing").value,
+      from: document.getElementById("from").value,
+      hiddenPS: document.getElementById("hiddenPS")?.value || null,
+      burnAfterReading: document.getElementById("burnAfterReading")?.checked || false,
+      signatureBase64: signatureBase64
+    };
+
+    // ✨ MAGIC: GEO-LOCK LOGIC
+    if (document.getElementById("geoLock")?.checked) {
+      try {
+        const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej));
+        letterPayload.targetLat = pos.coords.latitude;
+        letterPayload.targetLng = pos.coords.longitude;
+      } catch (err) {
+        alert("We couldn't get your location. Geo-lock will be disabled.");
+      }
+    }
+
+    // ✨ MAGIC: WEATHER SYNC LOGIC
+    if (document.getElementById("syncWeather")?.checked) {
+      try {
+        const weatherRes = await fetch("https://wttr.in/?format=j1");
+        const weatherData = await weatherRes.json();
+        letterPayload.weatherCondition = weatherData.current_condition[0].weatherDesc[0].value;
+        letterPayload.writtenLocation = weatherData.nearest_area[0].areaName[0].value;
+      } catch (err) {
+        console.log("Weather sync failed, skipping.");
+      }
+    }
+
+    // SEND TO MONGODB
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(letterPayload)
+      });
+
+      if (!response.ok) throw new Error("Failed to save to database");
+
+      const savedCard = await response.json();
+      
+      // Redirect to the newly created magical letter
+      window.location.href = `letter.html?id=${savedCard.id}`;
+    } catch (error) {
+      console.error(error);
+      alert("Failed to send letter. Is the server running?");
+      submitBtn.innerText = originalBtnText;
+      submitBtn.disabled = false;
+    }
+  });
+}
+
+// ── 4. LIKE HELPERS (MONGODB SYNC) ───────────────────────────────────────────
 function getLikes(cardId) {
   return JSON.parse(localStorage.getItem("letterio-likes") || "{}")[cardId] || 0;
 }
@@ -35,7 +139,6 @@ function hasLiked(cardId) {
   return JSON.parse(localStorage.getItem("letterio-liked-ids") || "[]").includes(cardId);
 }
 
-// Now async so it can talk to the server
 async function toggleLike(cardId, currentServerCount) {
   const likes  = JSON.parse(localStorage.getItem("letterio-likes") || "{}");
   const liked  = JSON.parse(localStorage.getItem("letterio-liked-ids") || "[]");
@@ -48,7 +151,6 @@ async function toggleLike(cardId, currentServerCount) {
     liked.splice(liked.indexOf(cardId), 1);
     action = "unlike";
   } else {
-    // If the server has a higher count than our local storage, use the server's count as the base
     const baseCount = Math.max(likes[cardId] || 0, currentServerCount || 0);
     likes[cardId] = baseCount + 1;
     liked.push(cardId);
@@ -58,7 +160,6 @@ async function toggleLike(cardId, currentServerCount) {
   localStorage.setItem("letterio-likes", JSON.stringify(likes));
   localStorage.setItem("letterio-liked-ids", JSON.stringify(liked));
 
-  // Sync with MongoDB in the background
   try {
     await fetch(`${API_URL}/${cardId}/like`, {
       method: 'PATCH',
@@ -72,9 +173,9 @@ async function toggleLike(cardId, currentServerCount) {
   return { count: likes[cardId], liked: !already };
 }
 
-// ── Share helpers ─────────────────────────────────────────────────────────────
+// ── 5. SHARE HELPERS ─────────────────────────────────────────────────────────
 function cardShareUrl(card) {
-  return `${window.location.origin}/letter.html?id=${card.id}`; // Adjusted to ensure it points to the single letter page
+  return `${window.location.origin}/letter.html?id=${card.id}`;
 }
 
 function buildShareButtons(card) {
@@ -114,13 +215,11 @@ function buildShareButtons(card) {
   `;
 }
 
-// ── Card renderer (UPDATED FOR XSS PROTECTION) ────────────────────────────────
+// ── 6. FEED RENDERER ─────────────────────────────────────────────────────────
 function renderCard(card) {
   const liked = hasLiked(card.id);
-  // Use server count if available, otherwise fallback to local
   const count = card.likes !== undefined ? card.likes : getLikes(card.id); 
 
-  // Sanitize the HTML before injecting it into the feed
   const safeWriteup = typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(card.writeup) : card.writeup;
 
   const div = document.createElement("div");
@@ -136,7 +235,6 @@ function renderCard(card) {
     <div class="letter-card--footer">
       <a href="letter.html?id=${card.id}" class="letter-card--title">${card.title}</a>
       <div class="card-actions">
-        <!-- Added data-server-count so we can compare local vs server logic -->
         <button class="like-btn ${liked ? "like-btn--active" : ""}" data-id="${card.id}" data-server-count="${count}"
           aria-label="${liked ? "Unlike" : "Like"} this letter" aria-pressed="${liked}">
           <svg class="like-btn--heart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
@@ -153,12 +251,11 @@ function renderCard(card) {
   return div;
 }
 
-// ── Event delegation: like + share + copy ────────────────────────────────────
+// ── 7. EVENT DELEGATION (LIKE + SHARE + COPY) ───────────────────────────────
 document.addEventListener("click", async (e) => {
-
-  // Like
+  // Like Button Click
   const likeBtn = e.target.closest(".like-btn");
-  if (likeBtn) {
+  if (likeBtn && !likeBtn.id.includes("btn-like")) { // Ignore single letter page like btn (handled in app.js)
     const id = Number(likeBtn.dataset.id);
     const serverCount = Number(likeBtn.dataset.serverCount) || 0;
     
@@ -167,19 +264,28 @@ document.addEventListener("click", async (e) => {
     const heart = likeBtn.querySelector(".like-btn--heart");
     heart.setAttribute("fill", liked ? "currentColor" : "none");
     likeBtn.querySelector(".like-btn--count").textContent = count > 0 ? count : "";
-    likeBtn.dataset.serverCount = count; // Update DOM state
+    likeBtn.dataset.serverCount = count;
     
     likeBtn.classList.toggle("like-btn--active", liked);
     likeBtn.setAttribute("aria-pressed", liked);
     likeBtn.setAttribute("aria-label", `${liked ? "Unlike" : "Like"} this letter`);
     
     likeBtn.classList.remove("like-btn--pop");
-    void likeBtn.offsetWidth; // Trigger reflow to restart animation
+    void likeBtn.offsetWidth; // Trigger reflow
     likeBtn.classList.add("like-btn--pop");
+
+    // Add floating reaction to feed!
+    const floatingEmoji = document.createElement("div");
+    const reactions = ["💖", "✨", "💌", "🥺"];
+    floatingEmoji.innerText = reactions[Math.floor(Math.random() * reactions.length)];
+    floatingEmoji.className = "floating-reaction";
+    floatingEmoji.style.left = `${Math.random() * 40 + 20}%`;
+    likeBtn.appendChild(floatingEmoji);
+    setTimeout(() => floatingEmoji.remove(), 2000);
     return;
   }
 
-  // Native share
+  // Native Share Click
   const nativeBtn = e.target.closest(".share-btn--native");
   if (nativeBtn) {
     if (navigator.share) {
@@ -194,11 +300,9 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
-  // Copy link
+  // Copy Link Click
   const copyBtn = e.target.closest(".share-btn--copy");
-  if (copyBtn) {
-    await copyToClipboard(copyBtn.dataset.url, copyBtn);
-  }
+  if (copyBtn) await copyToClipboard(copyBtn.dataset.url, copyBtn);
 });
 
 async function copyToClipboard(text, btn) {
@@ -212,12 +316,10 @@ async function copyToClipboard(text, btn) {
       span.textContent = original;
       btn.classList.remove("share-btn--copied");
     }, 2000);
-  } catch (err) {
-    console.error("Clipboard error:", err);
-  }
+  } catch (err) { console.error("Clipboard error:", err); }
 }
 
-// ── Loading state ─────────────────────────────────────────────────────────────
+// ── 8. LOAD FEED ON INIT ─────────────────────────────────────────────────────
 function showLoading() {
   if (!cardsWrapper) return;
   cardsWrapper.innerHTML = `
@@ -228,12 +330,11 @@ function showLoading() {
   `;
 }
 
-// ── Fetch cards from backend (UPDATED) ────────────────────────────────────────
 async function loadCards() {
   if (!cardsWrapper) return;
   showLoading();
   try {
-    const res   = await fetch(API_URL);
+    const res = await fetch(API_URL);
     if (!res.ok) throw new Error("Server responded with an error");
     
     const cards = await res.json();
@@ -244,9 +345,7 @@ async function loadCards() {
       return;
     }
     
-    // Sort cards so the newest ones appear at the top of the feed
-    cards.sort((a, b) => b.id - a.id);
-    
+    cards.sort((a, b) => b.id - a.id); // Newest first
     cards.forEach((card) => cardsWrapper.appendChild(renderCard(card)));
   } catch (err) {
     cardsWrapper.innerHTML = `<p class="error-msg">Could not load letters. Is the server running?</p>`;
@@ -254,7 +353,11 @@ async function loadCards() {
   }
 }
 
+// Execute feed load
 loadCards();
+
+
+
 
 
 
