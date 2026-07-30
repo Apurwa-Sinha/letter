@@ -1,88 +1,98 @@
-// ── Audio Theme URLs ──
-const audioSources = {
-  rain: "https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3",
-  fireplace: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_678262ef76.mp3",
-  lofi: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3"
-};
+const url = `http://localhost:3000/cards`; // Change to production URL when deployed
+const urlParams = new URLSearchParams(window.location.search);
+const cardId = urlParams.get("id"); 
 
+let letterData = null;
 let bgAudio = null;
 
 // ============================================================================
-// 1. INITIALIZATION & TIME CAPSULE LOGIC
+// 1. INITIALIZATION & GEO-LOCKING 🗺️
 // ============================================================================
 async function initializeApp() {
-  if (!cardId) {
-    document.getElementById("envelope-status").innerText = "No letter ID found.";
-    return;
-  }
+  if (!cardId) return document.getElementById("envelope-status").innerText = "No letter ID found.";
 
   try {
     const res = await fetch(`${url}/${cardId}`);
     if (!res.ok) throw new Error(`Letter not found`);
-    
     letterData = await res.json();
     
     const statusText = document.getElementById("envelope-status");
     const sealBtn = document.getElementById("wax-seal");
     
-    // FEATURE: TIME CAPSULE ⏳
-    if (letterData.unlockDate) {
-      const unlockTime = new Date(letterData.unlockDate).getTime();
-      const now = new Date().getTime();
-
-      if (unlockTime > now) {
-        statusText.innerText = "This letter is sealed until the right time.";
-        sealBtn.style.opacity = 0.8;
-        
-        // Start Countdown Timer
-        setInterval(() => {
-          const distance = unlockTime - new Date().getTime();
-          if (distance < 0) {
-            location.reload(); // Refresh when unlocked
-            return;
-          }
-          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          
-          sealBtn.innerHTML = `<span style="font-size: 0.8rem; text-align:center;">Unlocks in<br>${days}d ${hours}h ${mins}m</span>`;
-        }, 1000);
-        return; // Stop here, don't allow opening
-      }
+    // FEATURE: GEO-LOCKED TREASURE HUNT 🗺️
+    if (letterData.targetLat && letterData.targetLng) {
+      statusText.innerText = "This letter is locked to a specific physical location.";
+      sealBtn.innerHTML = `<span class="wax-seal-text">Unlock</span>`;
+      sealBtn.disabled = false;
+      sealBtn.classList.add("ready");
+      sealBtn.addEventListener("click", verifyLocation);
+      return;
     }
 
-    // Normal Unlocked State
+    // Normal State
     statusText.innerText = "A letter has arrived for you.";
     sealBtn.disabled = false;
     sealBtn.classList.add("ready");
     sealBtn.addEventListener("click", breakSeal);
 
   } catch (error) {
-    console.error("Fetch failed:", error);
     document.getElementById("envelope-status").innerText = "Only ashes remain. This letter has been burned.";
     document.getElementById("wax-seal").style.display = "none";
   }
 }
 
+// ── GPS Distance Calculator ──
+function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; 
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const deltaP = (lat2-lat1) * Math.PI/180, deltaL = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(deltaP/2) * Math.sin(deltaP/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(deltaL/2) * Math.sin(deltaL/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; 
+}
+
+function verifyLocation() {
+  const statusText = document.getElementById("envelope-status");
+  statusText.innerText = "Checking GPS coordinates...";
+  
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const dist = getDistanceFromLatLonInM(pos.coords.latitude, pos.coords.longitude, letterData.targetLat, letterData.targetLng);
+      if (dist <= 100) {
+        breakSeal(); // Less than 100 meters away? Unlock it!
+      } else {
+        statusText.innerText = `You are ${Math.round(dist)} meters away. You must go to the exact spot to open this.`;
+      }
+    }, 
+    (err) => { statusText.innerText = "Location access is required to read this geo-locked letter."; }
+  );
+}
+
 // ============================================================================
-// 2. BREAK SEAL, AUDIO & BURN AFTER READING
+// 2. BREAK SEAL, WEATHER SYNC ⛈️ & BURN 🔥
 // ============================================================================
 function breakSeal() {
   const overlay = document.getElementById("envelope-overlay");
   overlay.classList.add("opened");
   
-  // FEATURE: AMBIENT AUDIO 🌧️
-  if (letterData.audioTheme && audioSources[letterData.audioTheme]) {
-    bgAudio = new Audio(audioSources[letterData.audioTheme]);
-    bgAudio.loop = true;
-    bgAudio.volume = 0.4;
-    bgAudio.play().catch(e => console.log("Audio autoplay prevented by browser"));
+  // FEATURE: WEATHER-SYNCED NOSTALGIA ⛈️
+  if (letterData.weatherCondition) {
+    let audioSrc = "";
+    if (letterData.weatherCondition.includes("Rain") || letterData.weatherCondition.includes("Thunderstorm")) {
+      audioSrc = "https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3";
+    } else if (letterData.weatherCondition.includes("Snow")) {
+      audioSrc = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3"; // Lofi
+    }
+    
+    if (audioSrc) {
+      bgAudio = new Audio(audioSrc);
+      bgAudio.loop = true; bgAudio.volume = 0.3;
+      bgAudio.play().catch(e => console.log("Autoplay prevented"));
+    }
   }
 
   // FEATURE: BURN AFTER READING 🔥
   if (letterData.burnAfterReading) {
-    // We send the delete request immediately. The user can read it now, 
-    // but if they refresh or share the link, it will be gone forever.
     fetch(`${url}/${cardId}`, { method: 'DELETE' }).catch(console.error);
   }
 
@@ -92,59 +102,126 @@ function breakSeal() {
   }, 1000);
 }
 
-// ============================================================================
-// 3. FLOATING REACTIONS (Update your existing toggleLike function)
-// ============================================================================
-async function toggleLike() {
-  const btn = document.getElementById("btn-like");
-  const countSpan = document.getElementById("like-count");
-  const isCurrentlyLiked = btn.classList.contains("like-btn--active");
-
-  // Trigger CSS Pop Animation
-  btn.classList.remove("like-btn--pop");
-  void btn.offsetWidth; // Reflow
-  btn.classList.add("like-btn--pop");
-
-  // FEATURE: FLOATING REACTION 💖
-  const floatingEmoji = document.createElement("div");
-  const reactions = ["💖", "✨", "💌", "🥺"];
-  floatingEmoji.innerText = reactions[Math.floor(Math.random() * reactions.length)];
-  floatingEmoji.className = "floating-reaction";
-  // Randomize slight horizontal position
-  floatingEmoji.style.left = `${Math.random() * 40 + 20}%`;
-  btn.appendChild(floatingEmoji);
+function buildLetterStructure(data) {
+  const container = document.querySelector(".letter--section--container");
   
-  // Clean up element after animation
-  setTimeout(() => floatingEmoji.remove(), 2000);
-
-  let currentCount = parseInt(countSpan.innerText) || 0;
-  let action = "";
-
-  // Optimistic UI Update
-  if (isCurrentlyLiked) {
-    btn.classList.remove("like-btn--active");
-    countSpan.innerText = Math.max(0, currentCount - 1);
-    localStorage.removeItem(`letterio-liked-${cardId}`);
-    action = "unlike";
-  } else {
-    btn.classList.add("like-btn--active");
-    countSpan.innerText = currentCount + 1;
-    localStorage.setItem(`letterio-liked-${cardId}`, "true");
-    action = "like";
+  let weatherTag = "";
+  if (data.weatherCondition && data.writtenLocation) {
+    weatherTag = `<div class="weather-tag">Written in ${data.writtenLocation} during ${data.weatherCondition}</div>`;
   }
 
-  // Background Sync to MongoDB
-  try {
-    await fetch(`${url}/${cardId}/like`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: action })
-    });
-  } catch (error) {
-    console.error("Failed to sync like with server:", error);
-  }
-}
+  let signatureImg = data.signatureBase64 ? `<img src="${data.signatureBase64}" class="signature-img" alt="Sender Signature" />` : "";
+
+  container.innerHTML = `
+    ${weatherTag}
+    <div class="letter--head animate-fade-up delay-1">
+      <h1 class="text-xxl-light">${data.title}</h1>
+      <p class="letter--date">${data.date ? data.date : 'Unknown date'}</p>
+    </div>
+    <p class="cards--para letter--salutation animate-fade-up delay-2">${data.salutation},</p>
+    <div id="typewriter-box" class="cards--para letter--container typewriter-cursor"></div>
     
+    <div id="letter-footer" style="opacity: 0; transition: opacity 1s;">
+      <p class="letter--closing">${data.closing},</p>
+      ${signatureImg}
+      <p class="letter--from">— ${data.from}</p>
+      <div id="action-container" class="card-actions letter-actions-group" data-html2canvas-ignore></div>
+    </div>
+  `;
+  startTypewriter(DOMPurify.sanitize(data.writeup));
+}
+
+// ============================================================================
+// 3. HTML TYPEWRITER & SCRATCH-OFF P.S. 🪙
+// ============================================================================
+async function startTypewriter(htmlString) {
+  const box = document.getElementById("typewriter-box");
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = htmlString;
+  await new Promise(r => setTimeout(r, 1000));
+
+  async function typeNode(node, parent) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      for (let char of node.textContent) {
+        parent.innerHTML += char;
+        await new Promise(r => setTimeout(r, 10)); 
+      }
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const newEl = document.createElement(node.tagName);
+      for (let attr of node.attributes) newEl.setAttribute(attr.name, attr.value);
+      parent.appendChild(newEl);
+      for (let child of node.childNodes) await typeNode(child, newEl);
+    }
+  }
+  for (let child of tempDiv.childNodes) await typeNode(child, box);
+  
+  box.classList.remove("typewriter-cursor");
+  document.getElementById("letter-footer").style.opacity = 1;
+  
+  // FEATURE: THE SCRATCH-OFF P.S. 🪙
+  if (letterData.hiddenPS) buildScratchOff(letterData.hiddenPS);
+}
+
+function buildScratchOff(text) {
+  const footer = document.getElementById("letter-footer");
+  const wrapper = document.createElement("div");
+  wrapper.className = "scratch-container";
+  
+  wrapper.innerHTML = `
+    <p class="scratch-text"><strong>P.S.</strong> ${DOMPurify.sanitize(text)}</p>
+    <canvas class="scratch-canvas"></canvas>
+  `;
+  
+  footer.insertBefore(wrapper, document.getElementById("action-container"));
+
+  const canvas = wrapper.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
+
+  // Allow DOM to render dimensions
+  setTimeout(() => {
+    canvas.width = wrapper.offsetWidth;
+    canvas.height = wrapper.offsetHeight;
+    
+    // Draw Gold Foil
+    ctx.fillStyle = "#cca700"; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw Text
+    ctx.font = "bold 16px Inter";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("✨ Scratch to Reveal Secret ✨", canvas.width / 2, canvas.height / 2);
+  }, 100);
+
+  let isDragging = false;
+  const scratch = (e) => {
+    if (!isDragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.beginPath();
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  canvas.addEventListener("mousedown", () => isDragging = true);
+  canvas.addEventListener("mouseup", () => isDragging = false);
+  canvas.addEventListener("mousemove", scratch);
+  canvas.addEventListener("touchstart", () => isDragging = true);
+  canvas.addEventListener("touchend", () => isDragging = false);
+  canvas.addEventListener("touchmove", (e) => { e.preventDefault(); scratch(e); });
+}
+
+if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initializeApp); } 
+else { initializeApp(); }
+  
+         
+
+
+
 
 
 
