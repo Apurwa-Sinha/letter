@@ -1,91 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Letterio - A Letter For You</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Letterio - Send Magical Letters</title>
 
-  <!-- 1. Google Fonts -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-  <!-- 2. External Libraries (CRITICAL for features to work) -->
-  <!-- html2canvas: For the "Save as Image" feature -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- DOMPurify: For XSS Security when rendering HTML -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  <!-- Quill Rich Text Editor CSS -->
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
-  <!-- 3. Stylesheets -->
-  <link rel="stylesheet" href="style.css">
-  
-  <!-- Note: If you put your dark mode CSS in a separate file, uncomment the line below: -->
-  <!-- <link rel="stylesheet" href="darkmode.css"> -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ==========================================
-       THE ENVELOPE OVERLAY 
-       Covers the screen until the user opens it
-       ========================================== -->
-  <div id="envelope-overlay" class="envelope-overlay">
-    <div class="envelope-content">
-      <p id="envelope-status">Retrieving your letter...</p>
-      <!-- The Wax Seal Button -->
-      <button id="wax-seal" class="wax-seal" disabled>
-        <span class="wax-seal-text">Open</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- ==========================================
-       PAGE HEADER 
-       ========================================== -->
-  <header>
-    <!-- animate-fade-up handles the elegant entrance -->
-    <div class="header--navbar--wrapper animate-fade-up delay-1">
-      <div class="logo" style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: bold;">
-        Letterio
+  <!-- HEADER & HERO -->
+  <header class="header">
+    <img src="https://images.unsplash.com/photo-1516714435131-44d6b64dc6a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" alt="Vintage Letters" class="heroImage" style="filter: brightness(60%);" />
+    
+    <div class="header--navbar--wrapper">
+      <div class="nav--logo">
+        <span class="nav--logo--writeup">Letterio.</span>
       </div>
-      
-      <!-- The darkmode.js script will automatically inject the Moon/Sun toggle button inside this <nav> -->
-      <nav style="display: flex; align-items: center; gap: 16px;">
-        <a href="/" style="color: inherit; text-decoration: none;">Home</a>
-      </nav>
+      <div>
+        <a href="#create-section" style="font-weight: 500;">Write a Letter</a>
+      </div>
+    </div>
+
+    <div class="header--hero--content">
+      <p>Reviving the lost art of letter writing</p>
+      <h1 class="text-xxl-light">Send a piece of your heart.</h1>
+      <button><a href="#create-section">Start Writing ✨</a></button>
     </div>
   </header>
 
-  <!-- ==========================================
-       MAIN CONTENT (THE LETTER)
-       ========================================== -->
-  <main>
-    <!-- app.js will inject the fetched letter data directly into this container -->
-    <section class="letter--section--container">
-      <!-- Leave this empty. JavaScript handles the rest! -->
-    </section>
-  </main>
+  <!-- PUBLIC FEED SECTION -->
+  <section class="display--section">
+    <div class="display--section--wrapper">
+      <div class="display--section--writeup">
+        <h2 class="text-xxl-dark" style="margin-bottom: 8px;">Recent Letters</h2>
+        <p>Read beautifully crafted public letters from around the world.</p>
+      </div>
+      <!-- Cards will be injected here by main.js -->
+      <div class="display--section--cards--wrapper"></div>
+    </div>
+  </section>
 
-  <!-- ==========================================
-       FOOTER
-       ========================================== -->
-  <footer class="lower--footer animate-fade-up delay-3">
-    <p>&copy; 2026 Letterio. Built with ❤️</p>
-  </footer>
+  <!-- CREATION FORM SECTION -->
+  <section id="create-section" class="form--container">
+    <div class="form--wrapper">
+      <h1 class="text-xxl-dark">Draft your magic.</h1>
+      
+      <form id="letter-form">
+        <div class="form--input">
+          <label for="title">Title of your letter</label>
+          <input type="text" id="title" required placeholder="e.g., To the one who got away" />
+        </div>
 
-  <!-- ==========================================
-       YOUR JAVASCRIPT FILES
-       ========================================== -->
-  <!-- Handles the dark mode toggle and saves preference -->
-  <script src="darkmode.js"></script>
-  <!-- Handles the API fetch, Typewriter, Speech, and Image Saving -->
-  <script src="app.js"></script>
+        <div class="form--input">
+          <label for="salutation">Salutation</label>
+          <input type="text" id="salutation" required placeholder="e.g., My dearest Sarah" />
+        </div>
 
+        <!-- Quill Editor -->
+        <div class="form--input">
+          <label>Your message</label>
+          <div id="editor" style="height: 250px; background: #fff; font-size: 18px;"></div>
+        </div>
+
+        <div class="form--input">
+          <label for="closing">Closing</label>
+          <input type="text" id="closing" required placeholder="e.g., Yours forever" />
+        </div>
+
+        <div class="form--input">
+          <label for="from">Your Name</label>
+          <input type="text" id="from" required placeholder="e.g., John" />
+        </div>
+
+        <!-- ✨ MAGICAL FEATURES SECTION ✨ -->
+        <div class="magical-features" style="margin-top: 24px; padding: 20px; background: #fff; border-radius: 10px; border: 1px solid #e3e4e3;">
+          <h3 style="margin-bottom: 16px;">✨ Add some magic to your letter</h3>
+          
+          <!-- Scratch-Off P.S. -->
+          <div class="form--input">
+            <label for="hiddenPS" style="font-size: 16px;">Secret Scratch-Off P.S. (Optional)</label>
+            <input type="text" id="hiddenPS" placeholder="A hidden message they must scratch to reveal...">
+          </div>
+
+          <!-- Signature Pad -->
+          <div class="form--input">
+            <label style="font-size: 16px;">Sign your name or draw a doodle (Optional)</label>
+            <canvas id="signature-pad" width="300" height="150" style="border: 2px dashed #ccc; border-radius: 8px; cursor: crosshair; touch-action: none; background: #fafafa;"></canvas>
+            <button type="button" id="clear-signature" style="display:block; margin-top:8px; font-size:12px; padding:6px 12px; border-radius: 6px; cursor: pointer;">Clear Signature</button>
+          </div>
+
+          <!-- Magical Checkboxes -->
+          <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 24px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="burnAfterReading"> 🔥 Burn after reading
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="geoLock"> 📍 Lock to my current GPS location
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500;">
+              <input type="checkbox" id="syncWeather" checked> ⛈️ Sync my local weather
+            </label>
+          </div>
+        </div>
+
+        <div class="form--button--container">
+          <button type="submit" class="teal-bg">Seal & Send Envelope</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- LIBRARIES -->
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+  <!-- CUSTOM JS -->
+  <script src="main.js"></script>
 </body>
 </html>
-  
-
-      
-
-
-
 
