@@ -1,4 +1,4 @@
-# 💌 Letterio
+# 💌 Letter
 
 > **Reviving the lost art of letter writing with a touch of digital magic.**
 
