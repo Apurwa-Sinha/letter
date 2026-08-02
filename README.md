@@ -1,8 +1,8 @@
-# 💌 Letter
+# 💌 LetterBox
 
 > **Reviving the lost art of letter writing with a touch of digital magic.**
 
-Letterio is a full-stack web application that transforms standard text into an immersive, emotional experience. Users can draft beautifully formatted public or private letters, sign them by hand, and seal them in a digital envelope. Recipients must physically click to break the wax seal, revealing the letter alongside ambient audio, weather data, and interactive elements.
+**LetterBox** is a full-stack web application that transforms standard text into an immersive, emotional experience. Users can draft beautifully formatted public or private letters, sign them by hand, and seal them in a digital envelope. Recipients must physically click to break the wax seal, revealing the letter alongside ambient audio, weather data, and interactive elements.
 
 ## ✨ Magical Features
 
@@ -36,9 +36,9 @@ Letterio is a full-stack web application that transforms standard text into an i
 
 ## 🚀 Installation & Setup
 
-To run Letterio locally, you will need Node.js and a MongoDB database (either local or MongoDB Atlas).
+To run LetterBox locally, you will need Node.js and a MongoDB database (either local or MongoDB Atlas).
 
 ### 1. Clone the repository
 ```bash
-git clone [https://github.com/yourusername/letterio.git](https://github.com/yourusername/letterio.git)
-cd letterio
+git clone [https://github.com/yourusername/letterbox.git](https://github.com/yourusername/letterbox.git)
+cd letterbox
